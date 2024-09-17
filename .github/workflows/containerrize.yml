@@ -7,7 +7,7 @@ on:
   
 env:
     REGISTRY: ghcr.io
-    IMAGE_NAME: ${{ github.repository_owner }}/code
+    IMAGE_NAME: ${{ github.repository_owner }}/PDF-Generator
 
 jobs:
     build:
