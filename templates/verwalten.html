@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dokumente verwalten</title>
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            display: grid;
+            height: 100vh;
+            width: 100vw;
+            place-items: center;
+        }
+
+        .bubbles {
+            display: grid;
+            gap: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            width: 80vw;
+            height: 80vh;
+        }
+
+        .bubble {
+            background: black;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            border-radius: 50%;
+            aspect-ratio: 1;
+            cursor: pointer;
+            margin: 0 auto;
+        }
+
+        form {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 600px;
+        }
+
+        .add-button {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: #fff;
+            border: none;
+            color: #000;
+            font-size: 1rem;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0px 0px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        .add-button:hover {
+            background-color: #ddd;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            background-color: #f0f0f0;
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        li:hover {
+            background-color: #ddd;
+        }
+
+        .selected {
+            font-size: 0.9rem;
+            margin-top: 10px;
+            color: black;
+            text-align: center;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
+        @media (orientation: portrait) {
+            .bubbles {
+                grid-template-rows: repeat(auto-fit, minmax(120px, 1fr));
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="bubbles">
+            <!-- Erste Blase: Universität -->
+            <div>
+                <div class="bubble" onclick="showModal('Universitäten')">
+                    Universität auswählen
+                </div>
+                <div id="selectedUniversity" class="selected">Keine Universität ausgewählt</div>
+            </div>
+            
+            <!-- Zweite Blase: School -->
+            <div>
+                <div class="bubble" onclick="showModal('Schools')">
+                    School auswählen
+                </div>
+                <div id="selectedSchool" class="selected">Keine School ausgewählt</div>
+            </div>
+            
+            <!-- Dritte Blase: Lehrstuhl -->
+            <div>
+                <div class="bubble" onclick="showModal('Lehrstühle')">
+                    Lehrstuhl auswählen
+                </div>
+                <div id="selectedDepartment" class="selected">Kein Lehrstuhl ausgewählt</div>
+            </div>
+            
+            <!-- Vierte Blase: Kurse -->
+            <div>
+                <div class="bubble" onclick="showModal('Kurse')">
+                    Kurs auswählen
+                </div>
+                <div id="selectedCourse" class="selected">Kein Kurs ausgewählt</div>
+            </div>
+
+            <!-- Fünfte Blase: Dokument hochladen -->
+            <div>
+                <div class="bubble" onclick="document.getElementById('fileInput').click();">
+                    <span>Dokument hochladen</span>
+                    <form method="post" enctype="multipart/form-data" id="uploadForm" action="{{ url_for('index') }}" style="display: none;">
+                        <input type="file" id="fileInput" name="file" required onchange="submitForm()">
+                        <input type="hidden" id="universityId" name="university_id">
+                        <input type="hidden" id="schoolId" name="school_id">
+                        <input type="hidden" id="departmentId" name="chair_id">
+                        <input type="hidden" id="courseId" name="course_id">
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal zur Auswahl -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2 id="modalTitle"></h2>
+            <ul id="elementList">
+                <!-- Elemente werden hier über JavaScript eingefügt -->
+            </ul>
+        </div>
+    </div>
+
+    <!-- Modal zum Hinzufügen von Elementen -->
+    <div id="addElementForm" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeAddElementForm()">&times;</span>
+            <h2 id="addElementTitle">Element hinzufügen</h2>
+            <form id="elementForm" onsubmit="addElement(); return false;">
+                <input type="text" id="elementName" placeholder="Name des Elements" required>
+                <button type="submit">Hinzufügen</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let selectedUniversity = null;
+        let selectedSchool = null;
+        let selectedDepartment = null;
+        let selectedCourse = null;
+    
+        document.addEventListener('DOMContentLoaded', function() {
+            window.universities = [];
+            window.schools = [];
+            window.departments = [];
+            window.courses = [];
+            loadUniversities();
+        });
+
+        function submitForm() {
+            if (!selectedUniversity || !selectedSchool || !selectedDepartment || !selectedCourse) {
+                alert('Bitte wählen Sie alle Kriterien aus, bevor Sie ein Dokument hochladen.');
+                return;
+            }
+
+            document.getElementById('universityId').value = selectedUniversity.id;
+            document.getElementById('schoolId').value = selectedSchool.id;
+            document.getElementById('departmentId').value = selectedDepartment.id;
+            document.getElementById('courseId').value = selectedCourse.id;
+
+            document.getElementById('uploadForm').submit();
+        }
+
+        function showAddElementForm(elementType) {
+            const title = document.getElementById('addElementTitle');
+            title.innerText = `Neues ${elementType} hinzufügen`;  // Kein .slice() mehr
+            document.getElementById('addElementForm').style.display = 'block';
+        }
+
+        function getElementTypeFromTitle(titleText) {
+            if (titleText.includes('Universität')) return 'Universität';
+            if (titleText.includes('School')) return 'School';
+            if (titleText.includes('Lehrstuhl') || titleText.includes('Lehrstühle')) return 'Lehrstuhl';
+            if (titleText.includes('Kurs')) return 'Kurs';
+            console.warn(`Unbekannter Elementtyp für Titel: ${titleText}`);
+            return 'Unbekannt';
+        }
+        
+        function addElement() {
+            const elementType = getElementTypeFromTitle(document.getElementById('addElementTitle').innerText);
+            const elementName = document.getElementById('elementName').value.trim();
+            
+            console.log('Versuche, ein neues Element hinzuzufügen:', elementType, elementName);  // Debug-Ausgabe
+
+            if (elementName === '') {
+                alert('Bitte geben Sie einen Namen für das Element ein.');
+                console.log('Abbruch: Kein Name eingegeben.');  // Debug-Ausgabe
+                return;
+            }
+
+            const data = { name: elementName };
+            let apiEndpoint = '';
+
+            switch (elementType) {
+                case 'Universität':
+                    apiEndpoint = '/api/universities';
+                    break;
+
+                case 'School':
+                    if (!selectedUniversity) {
+                        alert('Bitte zuerst eine Universität auswählen.');
+                        console.log('Abbruch: Keine Universität ausgewählt.');  // Debug-Ausgabe
+                        return;
+                    }
+                    data.university_id = selectedUniversity.id;
+                    apiEndpoint = '/api/schools';
+                    break;
+
+                case 'Lehrstuhl':
+                    if (!selectedSchool) {
+                        alert('Bitte zuerst eine School auswählen.');
+                        console.log('Abbruch: Keine School ausgewählt.');  // Debug-Ausgabe
+                        return;
+                    }
+                    data.school_id = selectedSchool.id;
+                    apiEndpoint = '/api/chairs';
+                    break;
+
+                case 'Kurs':
+                    if (!selectedDepartment) {
+                        alert('Bitte zuerst einen Lehrstuhl auswählen.');
+                        console.log('Abbruch: Kein Lehrstuhl ausgewählt.');  // Debug-Ausgabe
+                        return;
+                    }
+                    data.chair_id = selectedDepartment.id;
+                    apiEndpoint = '/api/courses';
+                    break;
+
+                default:
+                    console.error('Unbekannter Elementtyp:', elementType);
+                    return;
+            }
+
+            fetch(apiEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Netzwerkantwort war nicht in Ordnung beim Hinzufügen von ${elementType}.`);
+                }
+                return response.json();
+            })
+            .then(result => {
+                if (result.success) {
+                    console.log(`${elementType} erfolgreich hinzugefügt.`);
+                    switch (elementType) {
+                        case 'Universität':
+                            loadUniversities();
+                            break;
+                        case 'School':
+                            loadSchools(selectedUniversity.id);
+                            break;
+                        case 'Lehrstuhl':
+                            loadChairs(selectedSchool.id);
+                            break;
+                        case 'Kurs':
+                            loadCourses(selectedDepartment.id);
+                            break;
+                    }
+                } else {
+                    console.error(`Fehler beim Hinzufügen von ${elementType}:`, result.error || 'Unbekannter Fehler');
+                }
+            })
+            .catch(error => console.error(`Fehler beim Hinzufügen von ${elementType}:`, error));
+
+            // Formular zurücksetzen und das Modal schließen
+            document.getElementById('elementForm').reset();
+            closeAddElementForm();
+        }
+
+        function loadUniversities() {
+            console.log('Lade Liste der Universitäten...');  // Debug-Ausgabe
+            fetch('/api/universities')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Empfangene Universitäten:', data);  // Debug-Ausgabe
+                    window.universities = data.map(([id, name]) => ({ id, name, schools: [] }));
+                })
+                .catch(error => console.error('Fehler beim Abrufen der Universitäten:', error));
+        }
+    
+        function loadSchools(universityId) {
+            fetch(`/api/schools/${universityId}`)
+                .then(response => response.json())
+                .then(data => {
+                    window.schools = data.map(([id, name]) => ({ id, name, universityId, departments: [] }));
+                })
+                .catch(error => console.error('Error fetching schools:', error));
+        }
+    
+        function loadChairs(schoolId) {
+            fetch(`/api/chairs/${schoolId}`)
+                .then(response => response.json())
+                .then(data => {
+                    window.departments = data.map(([id, name]) => ({ id, name, schoolId, courses: [] }));
+                })
+                .catch(error => console.error('Error fetching chairs:', error));
+        }
+    
+        function loadCourses(chairId) {
+            fetch(`/api/courses/${chairId}`)
+                .then(response => response.json())
+                .then(data => {
+                    window.courses = data.map(([id, name]) => ({ id, name, departmentId: chairId }));
+                })
+                .catch(error => console.error('Error fetching courses:', error));
+        }
+    
+        function showModal(elementType) {
+            const modal = document.getElementById('modal');
+            modal.style.display = 'block';
+
+            const title = document.getElementById('modalTitle');
+            const list = document.getElementById('elementList');
+            list.innerHTML = '';
+
+            switch (elementType) {
+                case 'Universitäten':
+                    title.innerText = 'Universitäten';
+                    console.log('Universitäten laden:', window.universities); // Debug-Ausgabe
+                    window.universities.forEach(uni => {
+                        const li = document.createElement('li');
+                        li.innerText = uni.name;
+                        li.onclick = () => {
+                            selectUniversity(uni);
+                            loadSchools(uni.id);
+                        };
+                        list.appendChild(li);
+                    });
+                    break;
+                case 'Schools':
+                    if (!selectedUniversity) {
+                        alert('Bitte zuerst eine Universität auswählen.');
+                        return;
+                    }
+                    title.innerText = 'Schools';
+                    console.log('Schools laden für Universität ID:', selectedUniversity.id); // Debug-Ausgabe
+                    loadSchools(selectedUniversity.id);
+                    window.schools.forEach(school => {
+                        const li = document.createElement('li');
+                        li.innerText = school.name;
+                        li.onclick = () => {
+                            selectSchool(school);
+                            loadChairs(school.id);
+                        };
+                        list.appendChild(li);
+                    });
+                    break;
+                case 'Lehrstühle':
+                    if (!selectedSchool) {
+                        alert('Bitte zuerst eine School auswählen.');
+                        return;
+                    }
+                    title.innerText = 'Lehrstühle';
+                    console.log('Lehrstühle laden für School ID:', selectedSchool.id); // Debug-Ausgabe
+                    loadChairs(selectedSchool.id);
+                    window.departments.forEach(department => {
+                        const li = document.createElement('li');
+                        li.innerText = department.name;
+                        li.onclick = () => {
+                            selectDepartment(department);
+                            loadCourses(department.id);
+                        };
+                        list.appendChild(li);
+                    });
+                    break;
+                case 'Kurse':
+                    if (!selectedDepartment) {
+                        alert('Bitte zuerst einen Lehrstuhl auswählen.');
+                        return;
+                    }
+                    title.innerText = 'Kurse';
+                    console.log('Kurse laden für Lehrstuhl ID:', selectedDepartment.id); // Debug-Ausgabe
+                    loadCourses(selectedDepartment.id);
+                    window.courses.forEach(course => {
+                        const li = document.createElement('li');
+                        li.innerText = course.name;
+                        li.onclick = () => selectCourse(course);
+                        list.appendChild(li);
+                    });
+                    break;
+                default:
+                    console.warn('Unbekannter Elementtyp:', elementType);
+                    break;
+            }
+        }
+    
+        function closeModal() {
+            const modal = document.getElementById('modal');
+            modal.style.display = 'none';
+        }
+    
+        function selectUniversity(uni) {
+            selectedUniversity = uni;
+            document.getElementById('selectedUniversity').innerText = `Ausgewählt: ${uni.name}`;
+            document.getElementById('selectedSchool').innerText = 'Keine School ausgewählt';
+            document.getElementById('selectedDepartment').innerText = 'Kein Lehrstuhl ausgewählt';
+            document.getElementById('selectedCourse').innerText = 'Kein Kurs ausgewählt';
+            closeModal();
+        }
+    
+        function selectSchool(school) {
+            selectedSchool = school;
+            document.getElementById('selectedSchool').innerText = `Ausgewählt: ${school.name}`;
+            document.getElementById('selectedDepartment').innerText = 'Kein Lehrstuhl ausgewählt';
+            document.getElementById('selectedCourse').innerText = 'Kein Kurs ausgewählt';
+            closeModal();
+        }
+    
+        function selectDepartment(department) {
+            selectedDepartment = department;
+            document.getElementById('selectedDepartment').innerText = `Ausgewählt: ${department.name}`;
+            document.getElementById('selectedCourse').innerText = 'Kein Kurs ausgewählt';
+            closeModal();
+        }
+    
+        function selectCourse(course) {
+            selectedCourse = course;
+            document.getElementById('selectedCourse').innerText = `Ausgewählt: ${course.name}`;
+            closeModal();
+        }
+    
+        function closeAddElementForm() {
+            document.getElementById('addElementForm').style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('modal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+    </script>
+</body>
+
+</html>

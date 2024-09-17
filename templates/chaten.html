@@ -1,0 +1,716 @@
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dokumente und Chat</title>
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f5;
+        }
+
+        .container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        .documents {
+            flex: 1;
+            border-right: 2px solid #ddd;
+            padding: 10px;
+            background-color: #f8f8f8;
+            overflow-y: hidden; 
+            display: flex;
+            flex-direction: column;
+        }
+
+        #pdf-viewer {
+            flex: 1; 
+            overflow-y: auto; 
+            border: 1px solid #ddd;
+            margin-top: 10px;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #ffffff;
+        }
+
+        .chat {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-box {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: #ffffff;
+        }
+
+        .chat-input {
+            display: flex;
+            border-top: 2px solid #ddd;
+            background-color: #fafafa;
+            padding: 10px;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+
+        .chat-input button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .chat-input button:hover {
+            background-color: #0056b3;
+        }
+
+        .question {
+            text-align: right;
+            max-width: 80%;
+            margin-left: auto;
+            background-color: #ffffff40; /* Hintergrundfarbe für Fragen */
+            color: #000000; /* Textfarbe für Fragen */
+            border: 2px solid #dddddd; /* Schwarzer Rand */
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .answer {
+            text-align: left;
+            max-width: 80%;
+            margin-right: auto;
+            background-color: #ffffff40; /* Hintergrundfarbe für Antworten */
+            color: #000000; /* Textfarbe für Antworten */
+            border: 2px solid #dddddd; /* Schwarzer Rand */
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        .pdf-container {
+            width: 100%;
+            height: 100%; 
+            margin: 0;
+            padding: 0;
+            border: 1px solid #ddd;
+            position: relative;
+        }
+
+        iframe {
+            display: block;
+            width: 100%;
+            height: 100%;
+            border: none;
+            box-sizing: border-box;
+            padding: 0;
+            margin: 0;
+            position: absolute; 
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0; 
+        }
+
+        .select,
+        .highlight {
+            background-color: yellow; /* Markiere den Text gelb */
+        }
+        .textLayer {
+            position: absolute;
+            pointer-events: none;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+        }
+        .button {
+            display: inline-block; 
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #ffffff;
+            font-size: 14px;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .navigation-container {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        #prev-pdf, 
+        #next-pdf {
+            width: 49%; /* Fast die Hälfte, um den Abstand zu berücksichtigen */
+            height: 42px; /* Entspricht der Höhe der Dropdowns */
+            border: 1px solid #ddd; /* Gleiche Rahmenfarbe */
+            border-radius: 5px;
+            background-color: #ffffff;
+            font-size: 14px;
+            margin: 0;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #prev-pdf:hover, 
+        #next-pdf:hover {
+            background-color: #f0f0f5; /* Gleiche Hover-Farbe wie die Dropdown-Optionen */
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Linke Seite: Dokumentenauswahl -->
+        <div class="documents">
+            <h2>Dokumente</h2>
+
+            <!-- Dropdown für Universität -->
+            <select id="university-select">
+                <option value="">Universität auswählen</option>
+                <option value="uni1">Universität 1</option>
+                <option value="uni2">Universität 2</option>
+                <!-- Weitere Universitäten hier -->
+            </select>
+
+            <!-- Dropdown für School -->
+            <select id="school-select" disabled>
+                <option value="">School auswählen</option>
+                <!-- Optionen für Schools werden dynamisch geladen -->
+            </select>
+
+            <!-- Dropdown für Lehrstuhl -->
+            <select id="chair-select" disabled>
+                <option value="">Lehrstuhl auswählen</option>
+                <!-- Optionen für Lehrstühle werden dynamisch geladen -->
+            </select>
+
+            <!-- Dropdown für Kurs -->
+            <select id="course-select" disabled>
+                <option value="">Kurs auswählen</option>
+                <!-- Optionen für Kurse werden dynamisch geladen -->
+            </select>
+            
+            <div class="navigation-buttons">
+                <button id="prev-pdf" onclick="showPreviousPDF()">Vorherige</button>
+                <button id="next-pdf" onclick="showNextPDF()">Nächste</button>
+            </div>
+
+            <div id="pdf-viewer" class="pdf-container">
+            </div>
+
+        </div>
+
+        <!-- Rechte Seite: Chatbox -->
+        <div class="chat">
+            <div class="chat-box" id="chat-box">
+                <!-- Chatnachrichten werden hier hinzugefügt -->
+            </div>
+            <div class="chat-input">
+                <input type="text" id="chat-input" placeholder="Nachricht eingeben..." />
+                <button id="send-button" onclick="sendMessage()">Senden</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.worker.min.js"></script>
+    <script>
+    let pdfFiles = [];
+    let currentIndex = 0;
+    let selectedUniversity = null;
+    let selectedSchool = null;
+    let selectedDepartment = null;
+    let selectedCourse = null;
+    let isPDFLoading = false;
+
+    document.getElementById('course-select').onchange = function() {
+        const courseId = this.value;
+        if (courseId) {
+            loadDocuments(courseId);
+        } else {
+            document.getElementById('pdf-viewer').innerHTML = ''; // Leeren, wenn kein Kurs ausgewählt ist
+        }
+    };
+
+    function loadAndHighlightPDF(pdfFilePath, matchText) {
+        if (isPDFLoading) return;  // Verhindert parallel laufende PDF-Ladevorgänge
+
+        isPDFLoading = true;
+
+        const pdfViewer = document.getElementById('pdf-viewer');
+        pdfViewer.innerHTML = '';
+
+        const loadingTask = pdfjsLib.getDocument(pdfFilePath);
+        loadingTask.promise.then(pdf => {
+            const promises = [];
+            for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+                promises.push(pdf.getPage(pageNumber).then(page => {
+                    return page.getTextContent().then(textContent => {
+                        if (textContent.items.some(item => item.str.includes(matchText))) {
+                            renderPDFPageWithHighlight(page, pdfViewer, matchText);
+                        }
+                    });
+                }));
+            }
+            return Promise.all(promises);
+        })
+        .catch(console.error)
+        .finally(() => {
+            isPDFLoading = false;
+        });
+    }
+
+    function renderPDFPageWithHighlight(page, pdfViewer, matchText) {
+        const scale = 1.5;
+        const viewport = page.getViewport({ scale: scale });
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        pdfViewer.appendChild(canvas);
+
+        const renderContext = {
+            canvasContext: context,
+            viewport: viewport,
+        };
+
+        page.render(renderContext).promise.then(() => {
+            const textLayerDiv = document.createElement('div');
+            textLayerDiv.style.height = `${viewport.height}px`;
+            textLayerDiv.style.width = `${viewport.width}px`;
+            textLayerDiv.className = "textLayer";
+            pdfViewer.appendChild(textLayerDiv);
+
+            page.getTextContent().then(textContent => {
+                textContent.items.forEach(textItem => {
+                    const span = document.createElement('span');
+                    span.style.left = `${textItem.transform[4]}px`;
+                    span.style.top = `${textItem.transform[5] - 10}px`;
+                    span.style.fontSize = `${textItem.height}px`;
+                    span.style.position = 'absolute';
+                    span.textContent = textItem.str;
+
+                    if (textItem.str.includes(matchText)) {
+                        span.style.backgroundColor = 'yellow';
+                        console.log('Text hervorgehoben:', textItem.str);
+                    }
+
+                    textLayerDiv.appendChild(span);
+                });
+            }).catch(console.error);
+        }).catch(console.error);
+    }
+
+    function loadDocuments() {
+        if (isPDFLoading) return; 
+        isPDFLoading = true;
+
+        const data = {
+            university_id: selectedUniversity || '',
+            school_id: selectedSchool || '',
+            chair_id: selectedDepartment || '',
+            course_id: selectedCourse || ''
+        };
+
+        fetch('/api/documents', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(files => {
+
+            // const pdfViewer = document.getElementById('pdf-viewer');
+            // pdfViewer.innerHTML = '';
+
+            if (files.error) {
+                console.error(files.error);
+                return;
+            }
+
+//            files.forEach(filePath => {
+//                const iframe = document.createElement('iframe');
+//                const encodedPath = encodeURI(`/uploads/${filePath}`); // encodeURI hier verwenden statt encodeURIComponent
+//                iframe.src = encodedPath;
+//                iframe.style.width = '100%';
+//                iframe.style.height = '100%';
+//                pdfViewer.appendChild(iframe);
+
+//                console.log(`Loading from ${encodedPath}`); // Debug-Information
+//            });
+
+            pdfFiles = files;
+            currentIndex = 0;
+            displayPDF();
+        })
+        .catch(error => {
+            console.error('Fehler beim Laden der Dokumente:', error);
+        })
+        .finally(() => {
+            isPDFLoading = false;  // Zurücksetzen des Status nach Abschluss
+        });
+    }
+
+    function displayPDF() {
+        if (pdfFiles.length > 0 && currentIndex < pdfFiles.length && currentIndex >= 0) {
+            const pdfViewer = document.getElementById('pdf-viewer');
+            const filePath = pdfFiles[currentIndex];
+            const encodedPath = encodeURI(`/uploads/${filePath}`);
+            pdfViewer.innerHTML = `<iframe src="${encodedPath}" style="width: 100%; height: 100%; border: none;"></iframe>`;
+            console.log(`Displaying ${encodedPath}`);
+        }
+    }
+
+    function showPreviousPDF() {
+        if (currentIndex > 0) {
+            currentIndex--;
+            displayPDF();
+        }
+    }
+
+    function showNextPDF() {
+        if (currentIndex < pdfFiles.length - 1) {
+            currentIndex++;
+            displayPDF();
+        }
+    }
+
+    window.onload = function() {
+        setupEventListeners();
+        loadUniversities();
+        loadDocuments();
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+        loadUniversities();
+        setupEventListeners();
+    });
+
+    function displayMatchedSection(pdfFilePath, matchText) {
+        const pdfViewer = document.getElementById('pdf-viewer');
+        pdfViewer.innerHTML = '';  // Leere zuvor existierende Inhalte
+
+        // Lade das PDF-Dokument mit PDF.js
+        const loadingTask = pdfjsLib.getDocument(pdfFilePath);
+        loadingTask.promise.then(pdf => {
+            // Nimm die erste Seite des PDFs als Beispiel
+            return pdf.getPage(1).then(page => {
+                const scale = 1.5; // Skalierung für bessere Lesbarkeit
+                const viewport = page.getViewport({ scale: scale });
+
+                // Erstelle ein Canvas-Element zur Darstellung des PDFs
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                pdfViewer.appendChild(canvas);
+
+                // Render die Seite in das Canvas
+                const renderContext = {
+                    canvasContext: context,
+                    viewport: viewport
+                };
+                page.render(renderContext);
+
+                // Du kannst hier nach dem `matchText` suchen und ggf. anzeigen
+                return page.getTextContent().then(textContent => {
+                    // Beispielansatz: Gehe durch Text-Elemente und suche nach Übereinstimmungen
+                    const textItems = textContent.items;
+                    let foundIndex = -1;
+
+                    textItems.forEach((textItem, index) => {
+                        if (textItem.str.includes(matchText)) {
+                            foundIndex = index;
+                            // Implementiere hier ggf. Logik um hervorzubringen (CSS Anpassung etc.)
+                            console.log(`Found text: ${matchText} at index ${index}`);
+                        }
+                    });
+
+                    // Falls gefunden, könntest du z.B. scrolling initiieren
+                    if (foundIndex !== -1) {
+                        // Beispiel für Logik zum Scrollen, wenn gefunden
+                        pdfViewer.scrollTop = canvas.height * (foundIndex / textItems.length);
+                    }
+                });
+            });
+        }).catch(console.error);
+    }
+
+    function setupEventListeners() {
+        const universitySelect = document.getElementById('university-select');
+        const schoolSelect = document.getElementById('school-select');
+        const chairSelect = document.getElementById('chair-select');
+        const courseSelect = document.getElementById('course-select');
+        const sendButton = document.getElementById('send-button');
+
+        if (universitySelect) {
+            universitySelect.addEventListener('change', function() {
+                const universityId = this.value;
+                if (universityId) {
+                    loadSchools(universityId);
+                } else {
+                    resetSelect('school-select', 'School auswählen');
+                    resetSelect('chair-select', 'Lehrstuhl auswählen');
+                    resetSelect('course-select', 'Kurs auswählen');
+                }
+            });
+        }
+
+        if (schoolSelect) {
+            schoolSelect.addEventListener('change', function() {
+                const schoolId = this.value;
+                if (schoolId) {
+                    loadChairs(schoolId);
+                } else {
+                    resetSelect('chair-select', 'Lehrstuhl auswählen');
+                    resetSelect('course-select', 'Kurs auswählen');
+                }
+            });
+        }
+
+        if (chairSelect) {
+            chairSelect.addEventListener('change', function() {
+                const chairId = this.value;
+                if (chairId) {
+                    loadCourses(chairId);
+                } else {
+                    resetSelect('course-select', 'Kurs auswählen');
+                }
+            });
+        }
+
+        if (sendButton) {
+            sendButton.addEventListener('click', sendMessage);
+        } else {
+            console.error("Send button not found!");
+        }
+    }
+
+    function resetSelect(selectId, placeholder) {
+        const selectElement = document.getElementById(selectId);
+        selectElement.innerHTML = `<option value="">${placeholder}</option>`;
+        selectElement.disabled = true;
+    }
+
+    function loadUniversities() {
+        fetch('/api/universities')
+            .then(response => response.json())
+            .then(data => populateSelect('university-select', data, 'Universität auswählen'));
+    }
+
+    function loadSchools(universityId) {
+        fetch(`/api/schools/${universityId}`)
+            .then(response => response.json())
+            .then(data => populateSelect('school-select', data, 'School auswählen', false));
+    }
+
+    function loadChairs(schoolId) {
+        fetch(`/api/chairs/${schoolId}`)
+            .then(response => response.json())
+            .then(data => populateSelect('chair-select', data, 'Lehrstuhl auswählen', false));
+    }
+
+    function loadCourses(chairId) {
+        fetch(`/api/courses/${chairId}`)
+            .then(response => response.json())
+            .then(data => populateSelect('course-select', data, 'Kurs auswählen', false));
+    }
+
+    function populateSelect(selectId, options, placeholder, disabled = true) {
+        const select = document.getElementById(selectId);
+        select.innerHTML = `<option value="">${placeholder}</option>`;
+        options.forEach(option => {
+            const optElement = document.createElement('option');
+            optElement.value = option[0];
+            optElement.textContent = option[1];
+            select.appendChild(optElement);
+        });
+        select.disabled = disabled;
+    }
+
+
+    function sendMessage() {
+        if (isPDFLoading) return;
+
+        const chatInput = document.getElementById('chat-input');
+        const chatBox = document.getElementById('chat-box');
+        const courseSelect = document.getElementById('course-select');
+        const message = chatInput.value.trim();
+        const courseId = courseSelect.value;
+
+        if (message && courseId) {
+            const questionElement = document.createElement('div');
+            questionElement.textContent = message;
+            questionElement.classList.add('question');
+            chatBox.appendChild(questionElement);
+            chatInput.value = '';
+
+            fetch('/api/ask', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ question: message, course_id: courseId }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    console.error('Fehler von API:', data.error);
+                    return;
+                }
+
+                const { used_chunk: usedChunk, used_doc: documentPath, answer } = data;
+
+                if (usedChunk && documentPath) {
+                    loadAndHighlightPDF(encodeURI(documentPath), usedChunk);  // encodeURI korrekten Pfad
+                }
+
+                const answerElement = document.createElement('div');
+                answerElement.textContent = answer;
+                answerElement.classList.add('answer');
+                chatBox.appendChild(answerElement);
+                chatBox.scrollTop = chatBox.scrollHeight;
+            })
+            .catch(error => {
+                console.error('Fehler beim Abrufen der Antwort von der API:', error);
+            });
+        } else {
+            console.error('Nachricht oder Kurs ID fehlt.');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+            loadUniversities();
+
+            document.getElementById('university-select').onchange = function() {
+                const universityId = this.value;
+                if (universityId) {
+                    loadSchools(universityId);
+                } else {
+                    document.getElementById('school-select').innerHTML = '<option value="">School auswählen</option>';
+                    document.getElementById('school-select').disabled = true;
+                }
+                document.getElementById('chair-select').innerHTML = '<option value="">Lehrstuhl auswählen</option>';
+                document.getElementById('chair-select').disabled = true;
+                document.getElementById('course-select').innerHTML = '<option value="">Kurs auswählen</option>';
+                document.getElementById('course-select').disabled = true;
+            };
+
+            document.getElementById('school-select').onchange = function() {
+                const schoolId = this.value;
+                if (schoolId) {
+                    loadChairs(schoolId);
+                } else {
+                    document.getElementById('chair-select').innerHTML = '<option value="">Lehrstuhl auswählen</option>';
+                    document.getElementById('chair-select').disabled = true;
+                }
+                document.getElementById('course-select').innerHTML = '<option value="">Kurs auswählen</option>';
+                document.getElementById('course-select').disabled = true;
+            };
+
+            document.getElementById('chair-select').onchange = function() {
+                const chairId = this.value;
+                if (chairId) {
+                    loadCourses(chairId);
+                } else {
+                    document.getElementById('course-select').innerHTML = '<option value="">Kurs auswählen</option>';
+                    document.getElementById('course-select').disabled = true;
+                }
+            };
+        });
+
+        function loadUniversities() {
+            fetch('/api/universities')
+                .then(response => response.json())
+                .then(data => {
+                    const universitySelect = document.getElementById('university-select');
+                    universitySelect.innerHTML = '<option value="">Universität auswählen</option>';
+                    data.forEach(university => {
+                        const option = document.createElement('option');
+                        option.value = university[0]; // assuming the first element is the ID
+                        option.textContent = university[1]; // assuming the second element is the name
+                        universitySelect.appendChild(option);
+                    });
+                });
+        }
+
+        function loadSchools(universityId) {
+            fetch(`/api/schools/${universityId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const schoolSelect = document.getElementById('school-select');
+                    schoolSelect.innerHTML = '<option value="">School auswählen</option>';
+                    data.forEach(school => {
+                        const option = document.createElement('option');
+                        option.value = school[0]; // assuming the first element is the ID
+                        option.textContent = school[1]; // assuming the second element is the name
+                        schoolSelect.appendChild(option);
+                    });
+                    schoolSelect.disabled = false;
+                });
+        }
+
+        function loadChairs(schoolId) {
+            fetch(`/api/chairs/${schoolId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const chairSelect = document.getElementById('chair-select');
+                    chairSelect.innerHTML = '<option value="">Lehrstuhl auswählen</option>';
+                    data.forEach(chair => {
+                        const option = document.createElement('option');
+                        option.value = chair[0]; // assuming the first element is the ID
+                        option.textContent = chair[1]; // assuming the second element is the name
+                        chairSelect.appendChild(option);
+                    });
+                    chairSelect.disabled = false;
+                });
+        }
+
+        function loadCourses(chairId) {
+            fetch(`/api/courses/${chairId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const courseSelect = document.getElementById('course-select');
+                    courseSelect.innerHTML = '<option value="">Kurs auswählen</option>';
+                    data.forEach(course => {
+                        const option = document.createElement('option');
+                        option.value = course[0]; // assuming the first element is the ID
+                        option.textContent = course[1]; // assuming the second element is the name
+                        courseSelect.appendChild(option);
+                    });
+                    courseSelect.disabled = false;
+                });
+        }
+    </script>
+</body>
+</html>

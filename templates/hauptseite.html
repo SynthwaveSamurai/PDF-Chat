@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KI Homepage</title>
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: white;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+        }
+        .bubble {
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: white;
+            font-size: 1rem;
+            position: absolute;
+            cursor: pointer;
+            will-change: left, top;
+        }
+        .bubble.large {
+            width: 200px;
+            height: 200px;
+            background: black;
+        }
+        .bubble.medium {
+            width: 150px;
+            height: 150px;
+            background: #808080; /* Mittelgrau */
+        }
+        .bubble.small {
+            width: 100px;
+            height: 100px;
+            background: #d3d3d3; /* Hellgrau */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="bubble large" onclick="location.href='/chaten';">Dokumente befragen</div>
+        <div class="bubble large" onclick="location.href='/verwalten';">Dokumente verwalten</div>
+
+        <div class="bubble medium" onclick="location.href='#';">Lehrstuhl der System-verfahrenstechnik</div>
+        <div class="bubble medium" onclick="location.href='#';">TUM Moodle</div>
+        <div class="bubble medium" onclick="location.href='#';">Gutachtenstil</div>
+        <div class="bubble medium" onclick="location.href='#';">CodeInterpreter</div>
+
+        <div class="bubble small" onclick="location.href='#';">Kontakt</div>
+        <div class="bubble small" onclick="location.href='#';">Informationen</div>
+        <div class="bubble small" onclick="location.href='#';">Impressum</div>
+        <div class="bubble small" onclick="location.href='#';">Github</div>
+        <div class="bubble small" onclick="location.href='#';">Nutzungs-bedingungen</div>
+        <div class="bubble small" onclick="location.href='#';">Disclaimer</div>
+        <div class="bubble small" onclick="location.href='#';">Privatsphäre-Einstellungen</div>
+    </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const bubbles = Array.from(document.querySelectorAll(".bubble"));
+            const container = document.querySelector(".container");
+
+            const getRandom = (min, max) => Math.random() * (max - min) + min;
+
+            bubbles.forEach((bubble) => {
+                bubble.style.left = `${getRandom(0, container.clientWidth - bubble.clientWidth)}px`;
+                bubble.style.top = `${getRandom(0, container.clientHeight - bubble.clientHeight)}px`;
+
+                bubble.radius = bubble.clientWidth / 2;
+                bubble.mass = Math.PI * Math.pow(bubble.radius, 2); // Masse als Fläche
+                
+                bubble.velocity = {
+                    x: getRandom(0.5, 1) * (Math.random() < 0.5 ? -1 : 1),
+                    y: getRandom(0.5, 1) * (Math.random() < 0.5 ? -1 : 1)
+                };
+            });
+
+            const checkCollision = (bubble1, bubble2) => {
+                const dx = (bubble1.offsetLeft + bubble1.radius) - (bubble2.offsetLeft + bubble2.radius);
+                const dy = (bubble1.offsetTop + bubble1.radius) - (bubble2.offsetTop + bubble2.radius);
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                return distance < (bubble1.radius + bubble2.radius);
+            };
+
+            const resolveCollision = (bubble1, bubble2) => {
+                const dx = (bubble1.offsetLeft + bubble1.radius) - (bubble2.offsetLeft + bubble2.radius);
+                const dy = (bubble1.offsetTop + bubble1.radius) - (bubble2.offsetTop + bubble2.radius);
+                
+                const collisionAngle = Math.atan2(dy, dx);
+                
+                const speed1 = Math.sqrt(bubble1.velocity.x ** 2 + bubble1.velocity.y ** 2);
+                const speed2 = Math.sqrt(bubble2.velocity.x ** 2 + bubble2.velocity.y ** 2);
+                
+                const direction1 = Math.atan2(bubble1.velocity.y, bubble1.velocity.x);
+                const direction2 = Math.atan2(bubble2.velocity.y, bubble2.velocity.x);
+                
+                const velocityX1 = speed1 * Math.cos(direction1 - collisionAngle);
+                const velocityY1 = speed1 * Math.sin(direction1 - collisionAngle);
+                
+                const velocityX2 = speed2 * Math.cos(direction2 - collisionAngle);
+                const velocityY2 = speed2 * Math.sin(direction2 - collisionAngle);
+                
+                const finalVelocityX1 = ((bubble1.mass - bubble2.mass) * velocityX1 + (bubble2.mass + bubble2.mass) * velocityX2) / (bubble1.mass + bubble2.mass);
+                const finalVelocityX2 = ((bubble1.mass + bubble1.mass) * velocityX1 + (bubble2.mass - bubble1.mass) * velocityX2) / (bubble1.mass + bubble2.mass);
+                
+                const finalVelocityY1 = velocityY1;
+                const finalVelocityY2 = velocityY2;
+                
+                bubble1.velocity.x = Math.cos(collisionAngle) * finalVelocityX1 + Math.cos(collisionAngle + Math.PI / 2) * finalVelocityY1;
+                bubble1.velocity.y = Math.sin(collisionAngle) * finalVelocityX1 + Math.sin(collisionAngle + Math.PI / 2) * finalVelocityY1;
+                
+                bubble2.velocity.x = Math.cos(collisionAngle) * finalVelocityX2 + Math.cos(collisionAngle + Math.PI / 2) * finalVelocityY2;
+                bubble2.velocity.y = Math.sin(collisionAngle) * finalVelocityX2 + Math.sin(collisionAngle + Math.PI / 2) * finalVelocityY2;
+            };
+
+            const moveBubbles = () => {
+                bubbles.forEach((bubble, i) => {
+                    let newX = bubble.offsetLeft + bubble.velocity.x;
+                    let newY = bubble.offsetTop + bubble.velocity.y;
+
+                    if (newX <= 0 || newX + bubble.clientWidth >= container.clientWidth) {
+                        bubble.velocity.x *= -1;
+                        newX = Math.max(0, Math.min(newX, container.clientWidth - bubble.clientWidth));
+                    }
+
+                    if (newY <= 0 || newY + bubble.clientHeight >= container.clientHeight) {
+                        bubble.velocity.y *= -1;
+                        newY = Math.max(0, Math.min(newY, container.clientHeight - bubble.clientHeight));
+                    }
+
+                    for (let j = i + 1; j < bubbles.length; j++) {
+                        const otherBubble = bubbles[j];
+                        if (checkCollision(bubble, otherBubble)) {
+                            resolveCollision(bubble, otherBubble);
+
+                            // Reposition slightly to avoid sticking
+                            const overlapDistance = bubble.radius + otherBubble.radius - Math.sqrt(
+                                (bubble.offsetLeft + bubble.radius - (otherBubble.offsetLeft + otherBubble.radius)) ** 2 +
+                                (bubble.offsetTop + bubble.radius - (otherBubble.offsetTop + otherBubble.radius)) ** 2
+                            );
+                            const angle = Math.atan2(otherBubble.offsetTop - bubble.offsetTop, otherBubble.offsetLeft - bubble.offsetLeft);
+                            bubble.style.left = `${bubble.offsetLeft - Math.cos(angle) * overlapDistance / 2}px`;
+                            bubble.style.top = `${bubble.offsetTop - Math.sin(angle) * overlapDistance / 2}px`;
+                            otherBubble.style.left = `${otherBubble.offsetLeft + Math.cos(angle) * overlapDistance / 2}px`;
+                            otherBubble.style.top = `${otherBubble.offsetTop + Math.sin(angle) * overlapDistance / 2}px`;
+                        }
+                    }
+
+                    bubble.style.left = `${newX}px`;
+                    bubble.style.top = `${newY}px`;
+                });
+
+                requestAnimationFrame(moveBubbles);
+            };
+
+            moveBubbles();
+        });
+    </script>
+</body>
+</html>
