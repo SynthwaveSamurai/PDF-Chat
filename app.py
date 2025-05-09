@@ -1,7 +1,7 @@
 #3.9.18
 
 import os
-from flask import Flask, render_template, request, redirect, url_for, jsonify, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, jsonify, send_file, send_from_directory
 import PyPDF2
 from transformers import AutoTokenizer, AutoModel
 import torch
@@ -42,7 +42,6 @@ def find_all_pdfs(base_directory):
     for root, dirs, files in os.walk(base_directory):
         for file in files:
             if file.endswith('.pdf'):
-                # Entferne den Basispfad, um den relativen Pfad zur Datei zu bekommen
                 relative_path = os.path.relpath(root, base_directory)
                 pdf_files.append(os.path.join(relative_path, file))
     return pdf_files
@@ -642,16 +641,30 @@ def list_documents(university_id, school_id, chair_id, course_id):
 def download_file(filepath):
     decoded_filepath = unquote(filepath)
     directory_path, filename = os.path.split(decoded_filepath)
-    full_directory_path = os.path.join(app.config['UPLOAD_FOLDER'], directory_path.replace('/', os.path.sep))
+    full_path = os.path.join(
+        app.config['UPLOAD_FOLDER'],
+        directory_path.replace('/', os.path.sep),
+        filename
+    )
 
     # Logging und Existenzüberprüfung
-    app.logger.info(f"Trying to access: {os.path.join(full_directory_path, filename)}")
-
-    if os.path.exists(os.path.join(full_directory_path, filename)):
-        return send_from_directory(full_directory_path, filename)
-    else:
-        app.logger.error(f"File not found: {os.path.join(full_directory_path, filename)}")
+    app.logger.info(f"Trying to access: {full_path}")
+    if not os.path.exists(full_path):
+        app.logger.error(f"File not found: {full_path}")
         return jsonify({"error": "File not found"}), 404
+
+    # 4. PDF inline ausliefern, ohne Caching
+    try:
+        return send_file(
+            full_path,           # hier den absoluten Pfad verwenden
+            mimetype='application/pdf',
+            as_attachment=False, # inline im Browser darstellen
+            conditional=False,     # unterstützt Range-Requests
+            max_age=0            # Cache-Control: no-cache
+        )
+    except Exception as e:
+        app.logger.error(f"Error sending file {full_path}: {e}")
+        return jsonify({"error": "Could not send file"}), 500
 
 def insert_into_db(document, text_chunk, embedding, university_id=None, school_id=None, chair_id=None, course_id=None):
     try:

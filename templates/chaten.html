@@ -19,6 +19,7 @@
         }
 
         .documents {
+            position: relative;
             flex: 1;
             border-right: 2px solid #ddd;
             padding: 10px;
@@ -102,48 +103,32 @@
             text-align: left;
             max-width: 80%;
             margin-right: auto;
-            background-color: #b8111140; /* Hintergrundfarbe für Antworten */
-            color: #000000; /* Textfarbe für Antworten */
-            border: 2px solid #dddddd; /* Schwarzer Rand */
+            background-color: #b8111140;
+            color: #000000; 
+            border: 2px solid #dddddd; 
             padding: 10px;
             border-radius: 5px;
             margin-bottom: 10px;
         }
         .pdf-container {
-            width: 100%;
-            height: 100%; 
-            margin: 0;
-            padding: 0;
-            border: 1px solid #ddd;
             position: relative;
-        }
-
-        iframe {
-            display: block;
             width: 100%;
             height: 100%;
-            border: none;
-            box-sizing: border-box;
-            padding: 0;
-            margin: 0;
-            position: absolute; 
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0; 
+            overflow: auto;
         }
 
         .select,
         .highlight {
-            background-color: yellow; /* Markiere den Text gelb */
+            background-color: yellow;
         }
         .textLayer {
             position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             pointer-events: none;
-            width: 100%;
-            height: 100%;
-            top: 0;
-            left: 0;
+        }
+        .textLayer span {
+            white-space: pre;
         }
         .button {
             display: inline-block; 
@@ -224,25 +209,7 @@
 
             <div id="pdf-viewer" class="pdf-container">
                 <!-- neu: Anzeige des gefundenen Textchunks unten links -->
-                <div id="pdf-snippet"
-                     style="
-                       position: absolute;
-                       bottom: 10px;
-                       left: 10px;
-                       background-color: rgba(255,255,200,0.95);
-                       border: 1px solid #aaa;
-                       padding: 8px;
-                       font-size: 12px;
-                       border-radius: 5px;
-                       max-width: 40%;
-                       z-index: 999;
-                       display: none;
-                       white-space: pre-wrap;
-                     ">
-                  <!-- Der Textchunk wird hier per JavaScript eingefügt -->
-                </div>
-              </div>
-
+            </div>
         </div>
 
         <!-- Rechte Seite: Chatbox -->
@@ -257,8 +224,18 @@
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.worker.min.js"></script>
+    <!-- 1) PDF.js Core (lokal) -->
+    <script src="/static/js/pdfjs/pdf.min.js"></script>
+
+    <!-- 2) Worker-Pfad lokal setzen -->
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+            "/static/js/pdfjs/pdf.worker.min.js";
+    </script>
+
+    <!-- 3) optional: Text‐Layer Builder -->
+    <script src="/static/js/pdfjs/pdf_viewer.min.js"></script>
+
     <script>
     let pdfFiles = [];
     let currentIndex = 0;
@@ -269,156 +246,68 @@
     let isPDFLoading = false;
 
     document.getElementById('course-select').onchange = function() {
-        const courseId = this.value;
-        if (courseId) {
-            loadDocuments(courseId);
+        selectedCourse = this.value; 
+        if (selectedCourse) {
+            loadDocuments(); 
         } else {
-            document.getElementById('pdf-viewer').innerHTML = ''; // Leeren, wenn kein Kurs ausgewählt ist
+            document.getElementById('pdf-viewer').innerHTML = '';
         }
     };
 
-    function loadAndHighlightPDF(pdfFilePath, matchText) {
-        if (isPDFLoading) return;  // Verhindert parallel laufende PDF-Ladevorgänge
+    const style = document.createElement('style');
+    style.textContent = `
+        .textLayer .highlight {
+            background-color: yellow;
+        }
+    `;
+    document.head.appendChild(style);
 
+    async function loadAndHighlightPDF(pdfUrl, matchText) {
+        if (isPDFLoading) return;
         isPDFLoading = true;
 
         const pdfViewer = document.getElementById('pdf-viewer');
-        pdfViewer.innerHTML = '';
+        pdfViewer.innerHTML = '';  // alten Inhalt leeren
 
-        const loadingTask = pdfjsLib.getDocument(pdfFilePath);
-        loadingTask.promise.then(pdf => {
-            const promises = [];
-            for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
-                promises.push(pdf.getPage(pageNumber).then(page => {
-                    return page.getTextContent().then(textContent => {
-                        if (textContent.items.some(item => item.str.includes(matchText))) {
-                            renderPDFPageWithHighlight(page, pdfViewer, matchText);
-                        }
-                    });
-                }));
+        try {
+            // 1) PDF laden
+            const pdf = await pdfjsLib.getDocument(pdfUrl).promise;
+            console.log(`PDF geladen mit ${pdf.numPages} Seiten`);
+
+            // 2) über alle Seiten iterieren
+            for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                const page = await pdf.getPage(pageNum);
+
+                // 3) Seite rendern
+                const scale    = 1.5;
+                const viewport = page.getViewport({ scale });
+
+                // Canvas anlegen
+                const canvas = document.createElement('canvas');
+                canvas.width  = viewport.width;
+                canvas.height = viewport.height;
+                pdfViewer.appendChild(canvas);
+                const ctx = canvas.getContext('2d');
+
+                // Seite in Canvas rendern
+                await page.render({ canvasContext: ctx, viewport }).promise;
             }
-            return Promise.all(promises);
-        })
-        .catch(console.error)
-        .finally(() => {
+        } catch (err) {
+            console.error('PDF-Rendering-Fehler:', err);
+        } finally {
             isPDFLoading = false;
-        });
-    }
-
-    function renderPDFPageWithHighlight(page, pdfViewer, matchText) {
-        const scale = 1.5;
-        const viewport = page.getViewport({ scale: scale });
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-        pdfViewer.appendChild(canvas);
-
-        const renderContext = {
-            canvasContext: context,
-            viewport: viewport,
-        };
-
-        page.render(renderContext).promise.then(() => {
-            const textLayerDiv = document.createElement('div');
-            textLayerDiv.style.height = `${viewport.height}px`;
-            textLayerDiv.style.width = `${viewport.width}px`;
-            textLayerDiv.className = "textLayer";
-            pdfViewer.appendChild(textLayerDiv);
-
-            page.getTextContent().then(textContent => {
-                textContent.items.forEach(textItem => {
-                    const span = document.createElement('span');
-                    span.style.left = `${textItem.transform[4]}px`;
-                    span.style.top = `${textItem.transform[5] - 10}px`;
-                    span.style.fontSize = `${textItem.height}px`;
-                    span.style.position = 'absolute';
-                    span.textContent = textItem.str;
-
-                    if (textItem.str.includes(matchText)) {
-                        span.style.backgroundColor = 'yellow';
-                        console.log('Text hervorgehoben:', textItem.str);
-                    }
-
-                    textLayerDiv.appendChild(span);
-                });
-            }).catch(console.error);
-        }).catch(console.error);
-    }
-
-    function loadDocuments() {
-        if (isPDFLoading) return; 
-        isPDFLoading = true;
-
-        const data = {
-            university_id: selectedUniversity || '',
-            school_id: selectedSchool || '',
-            chair_id: selectedDepartment || '',
-            course_id: selectedCourse || ''
-        };
-
-        fetch('/api/documents', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data)
-        })
-        .then(response => response.json())
-        .then(files => {
-
-            // const pdfViewer = document.getElementById('pdf-viewer');
-            // pdfViewer.innerHTML = '';
-
-            if (files.error) {
-                console.error(files.error);
-                return;
-            }
-
-//            files.forEach(filePath => {
-//                const iframe = document.createElement('iframe');
-//                const encodedPath = encodeURI(`/uploads/${filePath}`); // encodeURI hier verwenden statt encodeURIComponent
-//                iframe.src = encodedPath;
-//                iframe.style.width = '100%';
-//                iframe.style.height = '100%';
-//                pdfViewer.appendChild(iframe);
-
-//                console.log(`Loading from ${encodedPath}`); // Debug-Information
-//            });
-
-            pdfFiles = files;
-            currentIndex = 0;
-            displayPDF();
-        })
-        .catch(error => {
-            console.error('Fehler beim Laden der Dokumente:', error);
-        })
-        .finally(() => {
-            isPDFLoading = false;  // Zurücksetzen des Status nach Abschluss
-        });
-    }
-
-    function displayPDF() {
-        if (pdfFiles.length > 0 && currentIndex < pdfFiles.length && currentIndex >= 0) {
-            const pdfViewer = document.getElementById('pdf-viewer');
-            const filePath = pdfFiles[currentIndex];
-            const encodedPath = encodeURI(`/uploads/${filePath}`);
-            pdfViewer.innerHTML = `<iframe src="${encodedPath}" style="width: 100%; height: 100%; border: none;"></iframe>`;
-            console.log(`Displaying ${encodedPath}`);
         }
     }
 
     function showPreviousPDF() {
         if (currentIndex > 0) {
             currentIndex--;
-            displayPDF();
         }
     }
 
     function showNextPDF() {
         if (currentIndex < pdfFiles.length - 1) {
             currentIndex++;
-            displayPDF();
         }
     }
 
@@ -578,59 +467,73 @@
 
 
     function sendMessage() {
-        if (isPDFLoading) return;
+        // Wenn gerade ein PDF lädt oder keine Kurs-ID ausgewählt ist, abbrechen
+        if (isPDFLoading || !selectedCourse) {
+            console.error('Nachricht oder Kurs ID fehlt.');
+            return;
+        }
 
         const chatInput = document.getElementById('chat-input');
-        const chatBox = document.getElementById('chat-box');
-        const courseSelect = document.getElementById('course-select');
-        const message = chatInput.value.trim();
-        const courseId = courseSelect.value;
+        const chatBox   = document.getElementById('chat-box');
+        const message   = chatInput.value.trim();
 
-        if (message && courseId) {
-            const questionElement = document.createElement('div');
-            questionElement.textContent = message;
-            questionElement.classList.add('question');
-            chatBox.appendChild(questionElement);
-            chatInput.value = '';
-
-            fetch('/api/ask', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ question: message, course_id: courseId }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    console.error('Fehler von API:', data.error);
-                    return;
-                }
-
-                const { used_chunk: usedChunk, used_doc: documentPath, answer } = data;
-
-                if (usedChunk && documentPath) {
-                    console.log("Lade dieses Dokument:", documentPath);
-                    loadAndHighlightPDF(encodeURI(documentPath), usedChunk);
-
-                    const snippetBox = document.getElementById('pdf-snippet');
-                    snippetBox.textContent = usedChunk;
-                    snippetBox.style.display = 'block';
-                }
-
-                const answerElement = document.createElement('div');
-                answerElement.textContent = answer;
-                answerElement.classList.add('answer');
-                chatBox.appendChild(answerElement);
-                chatBox.scrollTop = chatBox.scrollHeight;
-            })
-            .catch(error => {
-                console.error('Fehler beim Abrufen der Antwort von der API:', error);
-            });
-        } else {
-            console.error('Nachricht oder Kurs ID fehlt.');
+        if (!message) {
+            console.error('Leere Nachricht.');
+            return;
         }
+
+        // Frage im Chat anzeigen
+        const questionElement = document.createElement('div');
+        questionElement.textContent = message;
+        questionElement.classList.add('question');
+        chatBox.appendChild(questionElement);
+        chatInput.value = '';
+
+        // API-Call
+        fetch('/api/ask', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+            question:  message,
+            course_id: selectedCourse
+            }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+            console.error('Fehler von API:', data.error);
+            return;
+            }
+
+            const { used_chunk: usedChunk, used_doc: documentPath, answer } = data;
+
+            if (usedChunk && documentPath) {
+            // Pfad säubern und richtigen Upload-URL bauen
+            const safe = documentPath
+                .replace(/\\/g, '/')
+                .replace(/^\/?(?:uploads\/?)+/, '');
+
+            // dann genau einmal /uploads/ voranstellen
+            const url = '/uploads/' + safe;
+            console.log('lade PDF unter URL:', url);
+
+            loadAndHighlightPDF(url, usedChunk);
+            } else {
+            console.error('Chunk oder Dokumentenpfad fehlt.');
+            }
+
+            // Antwort im Chat anzeigen
+            const answerElement = document.createElement('div');
+            answerElement.textContent = answer;
+            answerElement.classList.add('answer');
+            chatBox.appendChild(answerElement);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        })
+        .catch(error => {
+            console.error('Fehler beim Abrufen der Antwort von der API:', error);
+        });
     }
+
 
     document.addEventListener('DOMContentLoaded', function() {
             loadUniversities();
@@ -734,6 +637,6 @@
                     courseSelect.disabled = false;
                 });
         }
-    </script>
+      </script>
 </body>
 </html>
