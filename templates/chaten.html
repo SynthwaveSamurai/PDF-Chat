@@ -90,7 +90,7 @@
             text-align: right;
             max-width: 80%;
             margin-left: auto;
-            background-color: #ffffff40; /* Hintergrundfarbe für Fragen */
+            background-color: #1a30d040; /* Hintergrundfarbe für Fragen */
             color: #000000; /* Textfarbe für Fragen */
             border: 2px solid #dddddd; /* Schwarzer Rand */
             padding: 10px;
@@ -102,7 +102,7 @@
             text-align: left;
             max-width: 80%;
             margin-right: auto;
-            background-color: #ffffff40; /* Hintergrundfarbe für Antworten */
+            background-color: #b8111140; /* Hintergrundfarbe für Antworten */
             color: #000000; /* Textfarbe für Antworten */
             border: 2px solid #dddddd; /* Schwarzer Rand */
             padding: 10px;
@@ -223,7 +223,25 @@
             </div>
 
             <div id="pdf-viewer" class="pdf-container">
-            </div>
+                <!-- neu: Anzeige des gefundenen Textchunks unten links -->
+                <div id="pdf-snippet"
+                     style="
+                       position: absolute;
+                       bottom: 10px;
+                       left: 10px;
+                       background-color: rgba(255,255,200,0.95);
+                       border: 1px solid #aaa;
+                       padding: 8px;
+                       font-size: 12px;
+                       border-radius: 5px;
+                       max-width: 40%;
+                       z-index: 999;
+                       display: none;
+                       white-space: pre-wrap;
+                     ">
+                  <!-- Der Textchunk wird hier per JavaScript eingefügt -->
+                </div>
+              </div>
 
         </div>
 
@@ -592,7 +610,12 @@
                 const { used_chunk: usedChunk, used_doc: documentPath, answer } = data;
 
                 if (usedChunk && documentPath) {
-                    loadAndHighlightPDF(encodeURI(documentPath), usedChunk);  // encodeURI korrekten Pfad
+                    console.log("Lade dieses Dokument:", documentPath);
+                    loadAndHighlightPDF(encodeURI(documentPath), usedChunk);
+
+                    const snippetBox = document.getElementById('pdf-snippet');
+                    snippetBox.textContent = usedChunk;
+                    snippetBox.style.display = 'block';
                 }
 
                 const answerElement = document.createElement('div');
@@ -704,8 +727,8 @@
                     courseSelect.innerHTML = '<option value="">Kurs auswählen</option>';
                     data.forEach(course => {
                         const option = document.createElement('option');
-                        option.value = course[0]; // assuming the first element is the ID
-                        option.textContent = course[1]; // assuming the second element is the name
+                        option.value = course[0];
+                        option.textContent = course[1];
                         courseSelect.appendChild(option);
                     });
                     courseSelect.disabled = false;
