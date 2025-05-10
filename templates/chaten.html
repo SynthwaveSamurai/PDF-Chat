@@ -1,642 +1,202 @@
+<!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dokumente und Chat</title>
-    <style>
-        body {
-            margin: 0;
-            height: 100vh;
-            display: flex;
-            font-family: Arial, sans-serif;
-            background-color: #f0f0f5;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dokumente und Chat</title>
 
-        .container {
-            display: flex;
-            width: 100%;
-            height: 100%;
-        }
-
-        .documents {
-            position: relative;
-            flex: 1;
-            border-right: 2px solid #ddd;
-            padding: 10px;
-            background-color: #f8f8f8;
-            overflow-y: hidden; 
-            display: flex;
-            flex-direction: column;
-        }
-
-        #pdf-viewer {
-            flex: 1; 
-            overflow-y: auto; 
-            border: 1px solid #ddd;
-            margin-top: 10px;
-        }
-
-        select {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            background-color: #ffffff;
-        }
-
-        .chat {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .chat-box {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            background-color: #ffffff;
-        }
-
-        .chat-input {
-            display: flex;
-            border-top: 2px solid #ddd;
-            background-color: #fafafa;
-            padding: 10px;
-        }
-
-        .chat-input input {
-            flex: 1;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            margin-right: 10px;
-        }
-
-        .chat-input button {
-            padding: 10px 20px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        .chat-input button:hover {
-            background-color: #0056b3;
-        }
-
-        .question {
-            text-align: right;
-            max-width: 80%;
-            margin-left: auto;
-            background-color: #1a30d040; /* Hintergrundfarbe für Fragen */
-            color: #000000; /* Textfarbe für Fragen */
-            border: 2px solid #dddddd; /* Schwarzer Rand */
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 10px;
-        }
-
-        .answer {
-            text-align: left;
-            max-width: 80%;
-            margin-right: auto;
-            background-color: #b8111140;
-            color: #000000; 
-            border: 2px solid #dddddd; 
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 10px;
-        }
-        .pdf-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-        }
-
-        .select,
-        .highlight {
-            background-color: yellow;
-        }
-        .textLayer {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            pointer-events: none;
-        }
-        .textLayer span {
-            white-space: pre;
-        }
-        .button {
-            display: inline-block; 
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            background-color: #ffffff;
-            font-size: 14px;
-            cursor: pointer;
-            text-align: center;
-        }
-
-        .navigation-container {
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-            margin-bottom: 10px;
-        }
-
-        #prev-pdf, 
-        #next-pdf {
-            width: 49%; /* Fast die Hälfte, um den Abstand zu berücksichtigen */
-            height: 42px; /* Entspricht der Höhe der Dropdowns */
-            border: 1px solid #ddd; /* Gleiche Rahmenfarbe */
-            border-radius: 5px;
-            background-color: #ffffff;
-            font-size: 14px;
-            margin: 0;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        #prev-pdf:hover, 
-        #next-pdf:hover {
-            background-color: #f0f0f5; /* Gleiche Hover-Farbe wie die Dropdown-Optionen */
-        }
-
-    </style>
+  <!-- PDF.js Web-UI -->
+  <link rel="stylesheet" href="/static/js/pdfjs/pdf_viewer.css" />
+  <!-- deine eigenen Styles -->
+  <link rel="stylesheet" href="/static/css/styles.css" />
 </head>
 <body>
-    <div class="container">
-        <!-- Linke Seite: Dokumentenauswahl -->
-        <div class="documents">
-            <h2>Dokumente</h2>
+  <div class="container">
+    <div class="documents">
+      <h2>Dokumente</h2>
+      <select id="university-select"><option value="">Universität auswählen</option></select>
+      <select id="school-select" disabled><option value="">School auswählen</option></select>
+      <select id="chair-select" disabled><option value="">Lehrstuhl auswählen</option></select>
+      <select id="course-select" disabled><option value="">Kurs auswählen</option></select>
 
-            <!-- Dropdown für Universität -->
-            <select id="university-select">
-                <option value="">Universität auswählen</option>
-                <option value="uni1">Universität 1</option>
-                <option value="uni2">Universität 2</option>
-                <!-- Weitere Universitäten hier -->
-            </select>
+      <div class="navigation-container">
+        <button id="prev-pdf" disabled>Vorherige</button>
+        <button id="next-pdf" disabled>Nächste</button>
+      </div>
 
-            <!-- Dropdown für School -->
-            <select id="school-select" disabled>
-                <option value="">School auswählen</option>
-                <!-- Optionen für Schools werden dynamisch geladen -->
-            </select>
-
-            <!-- Dropdown für Lehrstuhl -->
-            <select id="chair-select" disabled>
-                <option value="">Lehrstuhl auswählen</option>
-                <!-- Optionen für Lehrstühle werden dynamisch geladen -->
-            </select>
-
-            <!-- Dropdown für Kurs -->
-            <select id="course-select" disabled>
-                <option value="">Kurs auswählen</option>
-                <!-- Optionen für Kurse werden dynamisch geladen -->
-            </select>
-            
-            <div class="navigation-buttons">
-                <button id="prev-pdf" onclick="showPreviousPDF()">Vorherige</button>
-                <button id="next-pdf" onclick="showNextPDF()">Nächste</button>
-            </div>
-
-            <div id="pdf-viewer" class="pdf-container">
-                <!-- neu: Anzeige des gefundenen Textchunks unten links -->
-            </div>
-        </div>
-
-        <!-- Rechte Seite: Chatbox -->
-        <div class="chat">
-            <div class="chat-box" id="chat-box">
-                <!-- Chatnachrichten werden hier hinzugefügt -->
-            </div>
-            <div class="chat-input">
-                <input type="text" id="chat-input" placeholder="Nachricht eingeben..." />
-                <button id="send-button" onclick="sendMessage()">Senden</button>
-            </div>
-        </div>
+      <div id="viewerContainer" class="viewerContainer">
+        <iframe id="pdfIframe"
+                width="100%" height="100%" style="border:none"
+                src="">
+        </iframe>
+      </div>
     </div>
 
-    <!-- 1) PDF.js Core (lokal) -->
-    <script src="/static/js/pdfjs/pdf.min.js"></script>
+    <div class="chat">
+      <div class="chat-box" id="chat-box"></div>
+      <div class="chat-input">
+        <input type="text" id="chat-input" placeholder="Nachricht eingeben..." />
+        <button id="send-button">Senden</button>
+      </div>
+    </div>
+  </div>
 
-    <!-- 2) Worker-Pfad lokal setzen -->
-    <script>
-        pdfjsLib.GlobalWorkerOptions.workerSrc =
-            "/static/js/pdfjs/pdf.worker.min.js";
-    </script>
+  <script src="/static/js/pdfjs/pdf.min.js"></script>
+  <script>pdfjsLib.GlobalWorkerOptions.workerSrc = '/static/js/pdfjs/pdf.worker.min.js';</script>
 
-    <!-- 3) optional: Text‐Layer Builder -->
-    <script src="/static/js/pdfjs/pdf_viewer.min.js"></script>
+  <script>
+  let pdfFiles = [], currentIndex = 0;
+  let selectedUniversity, selectedSchool, selectedChair, selectedCourse;
+  let isPDFLoading = false;
 
-    <script>
-    let pdfFiles = [];
-    let currentIndex = 0;
-    let selectedUniversity = null;
-    let selectedSchool = null;
-    let selectedDepartment = null;
-    let selectedCourse = null;
-    let isPDFLoading = false;
-
-    document.getElementById('course-select').onchange = function() {
-        selectedCourse = this.value; 
-        if (selectedCourse) {
-            loadDocuments(); 
-        } else {
-            document.getElementById('pdf-viewer').innerHTML = '';
-        }
-    };
-
-    const style = document.createElement('style');
-    style.textContent = `
-        .textLayer .highlight {
-            background-color: yellow;
-        }
-    `;
-    document.head.appendChild(style);
-
-    async function loadAndHighlightPDF(pdfUrl, matchText) {
-        if (isPDFLoading) return;
-        isPDFLoading = true;
-
-        const pdfViewer = document.getElementById('pdf-viewer');
-        pdfViewer.innerHTML = '';  // alten Inhalt leeren
-
-        try {
-            // 1) PDF laden
-            const pdf = await pdfjsLib.getDocument(pdfUrl).promise;
-            console.log(`PDF geladen mit ${pdf.numPages} Seiten`);
-
-            // 2) über alle Seiten iterieren
-            for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-                const page = await pdf.getPage(pageNum);
-
-                // 3) Seite rendern
-                const scale    = 1.5;
-                const viewport = page.getViewport({ scale });
-
-                // Canvas anlegen
-                const canvas = document.createElement('canvas');
-                canvas.width  = viewport.width;
-                canvas.height = viewport.height;
-                pdfViewer.appendChild(canvas);
-                const ctx = canvas.getContext('2d');
-
-                // Seite in Canvas rendern
-                await page.render({ canvasContext: ctx, viewport }).promise;
-            }
-        } catch (err) {
-            console.error('PDF-Rendering-Fehler:', err);
-        } finally {
-            isPDFLoading = false;
-        }
-    }
-
-    function showPreviousPDF() {
-        if (currentIndex > 0) {
-            currentIndex--;
-        }
-    }
-
-    function showNextPDF() {
-        if (currentIndex < pdfFiles.length - 1) {
-            currentIndex++;
-        }
-    }
-
-    window.onload = function() {
-        setupEventListeners();
-        loadUniversities();
-        loadDocuments();
-    };
-
-    document.addEventListener('DOMContentLoaded', function() {
-        loadUniversities();
-        setupEventListeners();
+  function populateSelect(id, options, placeholder) {
+    const sel = document.getElementById(id);
+    sel.innerHTML = `<option value="">${placeholder}</option>`;
+    options.forEach(([val, txt]) => {
+      const o = document.createElement('option');
+      o.value = val; o.textContent = txt;
+      sel.appendChild(o);
     });
+    sel.disabled = !options.length;
+  }
 
-    function displayMatchedSection(pdfFilePath, matchText) {
-        const pdfViewer = document.getElementById('pdf-viewer');
-        pdfViewer.innerHTML = '';  // Leere zuvor existierende Inhalte
+  async function loadUniversities() {
+    console.log('[DEBUG] loadUniversities');
+    try {
+      const data = await fetch('/api/universities').then(r => r.json());
+      populateSelect('university-select', data, 'Universität auswählen');
+    } catch(e) { console.error('[ERROR] loadUniversities', e); }
+  }
 
-        // Lade das PDF-Dokument mit PDF.js
-        const loadingTask = pdfjsLib.getDocument(pdfFilePath);
-        loadingTask.promise.then(pdf => {
-            // Nimm die erste Seite des PDFs als Beispiel
-            return pdf.getPage(1).then(page => {
-                const scale = 1.5; // Skalierung für bessere Lesbarkeit
-                const viewport = page.getViewport({ scale: scale });
+  async function loadSchools(id) {
+    console.log('[DEBUG] loadSchools', id);
+    try {
+      const data = await fetch(`/api/schools/${id}`).then(r => r.json());
+      populateSelect('school-select', data, 'School auswählen');
+    } catch(e) { console.error('[ERROR] loadSchools', e); }
+  }
 
-                // Erstelle ein Canvas-Element zur Darstellung des PDFs
-                const canvas = document.createElement('canvas');
-                const context = canvas.getContext('2d');
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
+  async function loadChairs(id) {
+    console.log('[DEBUG] loadChairs', id);
+    try {
+      const data = await fetch(`/api/chairs/${id}`).then(r => r.json());
+      populateSelect('chair-select', data, 'Lehrstuhl auswählen');
+    } catch(e) { console.error('[ERROR] loadChairs', e); }
+  }
 
-                pdfViewer.appendChild(canvas);
+  async function loadCourses(id) {
+    console.log('[DEBUG] loadCourses', id);
+    try {
+      const data = await fetch(`/api/courses/${id}`).then(r => r.json());
+      populateSelect('course-select', data, 'Kurs auswählen');
+    } catch(e) { console.error('[ERROR] loadCourses', e); }
+  }
 
-                // Render die Seite in das Canvas
-                const renderContext = {
-                    canvasContext: context,
-                    viewport: viewport
-                };
-                page.render(renderContext);
+  async function loadDocuments() {
+    if (!selectedCourse) return;
+    isPDFLoading = true;
+    const res = await fetch('/api/documents', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        university_id: selectedUniversity,
+        school_id:     selectedSchool,
+        chair_id:      selectedChair,
+        course_id:     selectedCourse
+      })
+    });
+    pdfFiles = await res.json();
+    currentIndex = 0;
+    loadPDF();
+    isPDFLoading = false;
+  }
 
-                // Du kannst hier nach dem `matchText` suchen und ggf. anzeigen
-                return page.getTextContent().then(textContent => {
-                    // Beispielansatz: Gehe durch Text-Elemente und suche nach Übereinstimmungen
-                    const textItems = textContent.items;
-                    let foundIndex = -1;
+  function getPdfUrl(path) {
+    const clean = path.replace(/\\/g,'/').replace(/^\/?(?:uploads\/?)+/, '');
+    return '/static/js/pdfjs/web/viewer.html?file='
+         + encodeURIComponent('/uploads/' + clean);
+  }
 
-                    textItems.forEach((textItem, index) => {
-                        if (textItem.str.includes(matchText)) {
-                            foundIndex = index;
-                            // Implementiere hier ggf. Logik um hervorzubringen (CSS Anpassung etc.)
-                            console.log(`Found text: ${matchText} at index ${index}`);
-                        }
-                    });
-
-                    // Falls gefunden, könntest du z.B. scrolling initiieren
-                    if (foundIndex !== -1) {
-                        // Beispiel für Logik zum Scrollen, wenn gefunden
-                        pdfViewer.scrollTop = canvas.height * (foundIndex / textItems.length);
-                    }
-                });
-            });
-        }).catch(console.error);
+  function loadPDF(highlightText = null) {
+    const iframe = document.getElementById('pdfIframe');
+    iframe.src = getPdfUrl(pdfFiles[currentIndex]);
+    if (highlightText) {
+      iframe.onload = () => {
+        iframe.contentWindow.postMessage({
+          type: 'find',
+          query: highlightText,
+          highlightAll: true,
+          phraseSearch: true
+        }, '*');
+      };
     }
+    updateNavButtons();
+  }
 
-    function setupEventListeners() {
-        const universitySelect = document.getElementById('university-select');
-        const schoolSelect = document.getElementById('school-select');
-        const chairSelect = document.getElementById('chair-select');
-        const courseSelect = document.getElementById('course-select');
-        const sendButton = document.getElementById('send-button');
+  function showPreviousPDF() { if (currentIndex > 0) { currentIndex--; loadPDF(); } }
+  function showNextPDF()     { if (currentIndex < pdfFiles.length - 1) { currentIndex++; loadPDF(); } }
+  function updateNavButtons() {
+    document.getElementById('prev-pdf').disabled = currentIndex === 0;
+    document.getElementById('next-pdf').disabled = currentIndex === pdfFiles.length - 1;
+  }
 
-        if (universitySelect) {
-            universitySelect.addEventListener('change', function() {
-                const universityId = this.value;
-                if (universityId) {
-                    loadSchools(universityId);
-                } else {
-                    resetSelect('school-select', 'School auswählen');
-                    resetSelect('chair-select', 'Lehrstuhl auswählen');
-                    resetSelect('course-select', 'Kurs auswählen');
-                }
-            });
-        }
+  function sendMessage() {
+    if (isPDFLoading || !selectedCourse) return;
+    const input = document.getElementById('chat-input');
+    const box   = document.getElementById('chat-box');
+    const msg   = input.value.trim(); if (!msg) return;
 
-        if (schoolSelect) {
-            schoolSelect.addEventListener('change', function() {
-                const schoolId = this.value;
-                if (schoolId) {
-                    loadChairs(schoolId);
-                } else {
-                    resetSelect('chair-select', 'Lehrstuhl auswählen');
-                    resetSelect('course-select', 'Kurs auswählen');
-                }
-            });
-        }
+    const qEl = document.createElement('div');
+    qEl.textContent = msg; qEl.classList.add('question');
+    box.appendChild(qEl); input.value = '';
 
-        if (chairSelect) {
-            chairSelect.addEventListener('change', function() {
-                const chairId = this.value;
-                if (chairId) {
-                    loadCourses(chairId);
-                } else {
-                    resetSelect('course-select', 'Kurs auswählen');
-                }
-            });
-        }
+    fetch('/api/ask', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ question: msg, course_id: selectedCourse })
+    })
+    .then(r => r.json())
+    .then(({ answer, used_chunk, used_doc }) => {
+      if (used_chunk && used_doc) {
+        const cleanDoc = used_doc.replace(/\\/g,'/').replace(/^\/?(?:uploads\/?)+/, '');
+        const idx = pdfFiles.findIndex(p => p.replace(/\\/g,'/').endsWith(cleanDoc));
+        if (idx !== -1) currentIndex = idx;
+        loadPDF(used_chunk);
+      }
+      const aEl = document.createElement('div');
+      aEl.textContent = answer; aEl.classList.add('answer');
+      box.appendChild(aEl); box.scrollTop = box.scrollHeight;
+    })
+    .catch(e => console.error(e));
+  }
 
-        if (sendButton) {
-            sendButton.addEventListener('click', sendMessage);
-        } else {
-            console.error("Send button not found!");
-        }
-    }
+  function setupEventListeners() {
+    document.getElementById('university-select').addEventListener('change', function(){
+      selectedUniversity = this.value; resetSelect('school-select', 'School auswählen'); loadSchools(this.value);
+    });
+    document.getElementById('school-select').addEventListener('change', function(){
+      selectedSchool = this.value; resetSelect('chair-select','Lehrstuhl auswählen'); loadChairs(this.value);
+    });
+    document.getElementById('chair-select').addEventListener('change', function(){
+      selectedChair = this.value; resetSelect('course-select','Kurs auswählen'); loadCourses(this.value);
+    });
+    document.getElementById('course-select').addEventListener('change', function(){
+      selectedCourse = this.value; if(this.value) loadDocuments(); else document.getElementById('viewerContainer').innerHTML='';
+    });
+    document.getElementById('prev-pdf').addEventListener('click', showPreviousPDF);
+    document.getElementById('next-pdf').addEventListener('click', showNextPDF);
+    document.getElementById('send-button').addEventListener('click', sendMessage);
+  }
 
-    function resetSelect(selectId, placeholder) {
-        const selectElement = document.getElementById(selectId);
-        selectElement.innerHTML = `<option value="">${placeholder}</option>`;
-        selectElement.disabled = true;
-    }
+  function resetSelect(id, placeholder) {
+    const s = document.getElementById(id);
+    s.innerHTML = `<option value="">${placeholder}</option>`;
+    s.disabled = true;
+  }
 
-    function loadUniversities() {
-        fetch('/api/universities')
-            .then(response => response.json())
-            .then(data => populateSelect('university-select', data, 'Universität auswählen'));
-    }
-
-    function loadSchools(universityId) {
-        fetch(`/api/schools/${universityId}`)
-            .then(response => response.json())
-            .then(data => populateSelect('school-select', data, 'School auswählen', false));
-    }
-
-    function loadChairs(schoolId) {
-        fetch(`/api/chairs/${schoolId}`)
-            .then(response => response.json())
-            .then(data => populateSelect('chair-select', data, 'Lehrstuhl auswählen', false));
-    }
-
-    function loadCourses(chairId) {
-        fetch(`/api/courses/${chairId}`)
-            .then(response => response.json())
-            .then(data => populateSelect('course-select', data, 'Kurs auswählen', false));
-    }
-
-    function populateSelect(selectId, options, placeholder, disabled = true) {
-        const select = document.getElementById(selectId);
-        select.innerHTML = `<option value="">${placeholder}</option>`;
-        options.forEach(option => {
-            const optElement = document.createElement('option');
-            optElement.value = option[0];
-            optElement.textContent = option[1];
-            select.appendChild(optElement);
-        });
-        select.disabled = disabled;
-    }
-
-
-    function sendMessage() {
-        // Wenn gerade ein PDF lädt oder keine Kurs-ID ausgewählt ist, abbrechen
-        if (isPDFLoading || !selectedCourse) {
-            console.error('Nachricht oder Kurs ID fehlt.');
-            return;
-        }
-
-        const chatInput = document.getElementById('chat-input');
-        const chatBox   = document.getElementById('chat-box');
-        const message   = chatInput.value.trim();
-
-        if (!message) {
-            console.error('Leere Nachricht.');
-            return;
-        }
-
-        // Frage im Chat anzeigen
-        const questionElement = document.createElement('div');
-        questionElement.textContent = message;
-        questionElement.classList.add('question');
-        chatBox.appendChild(questionElement);
-        chatInput.value = '';
-
-        // API-Call
-        fetch('/api/ask', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-            question:  message,
-            course_id: selectedCourse
-            }),
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-            console.error('Fehler von API:', data.error);
-            return;
-            }
-
-            const { used_chunk: usedChunk, used_doc: documentPath, answer } = data;
-
-            if (usedChunk && documentPath) {
-            // Pfad säubern und richtigen Upload-URL bauen
-            const safe = documentPath
-                .replace(/\\/g, '/')
-                .replace(/^\/?(?:uploads\/?)+/, '');
-
-            // dann genau einmal /uploads/ voranstellen
-            const url = '/uploads/' + safe;
-            console.log('lade PDF unter URL:', url);
-
-            loadAndHighlightPDF(url, usedChunk);
-            } else {
-            console.error('Chunk oder Dokumentenpfad fehlt.');
-            }
-
-            // Antwort im Chat anzeigen
-            const answerElement = document.createElement('div');
-            answerElement.textContent = answer;
-            answerElement.classList.add('answer');
-            chatBox.appendChild(answerElement);
-            chatBox.scrollTop = chatBox.scrollHeight;
-        })
-        .catch(error => {
-            console.error('Fehler beim Abrufen der Antwort von der API:', error);
-        });
-    }
-
-
-    document.addEventListener('DOMContentLoaded', function() {
-            loadUniversities();
-
-            document.getElementById('university-select').onchange = function() {
-                const universityId = this.value;
-                if (universityId) {
-                    loadSchools(universityId);
-                } else {
-                    document.getElementById('school-select').innerHTML = '<option value="">School auswählen</option>';
-                    document.getElementById('school-select').disabled = true;
-                }
-                document.getElementById('chair-select').innerHTML = '<option value="">Lehrstuhl auswählen</option>';
-                document.getElementById('chair-select').disabled = true;
-                document.getElementById('course-select').innerHTML = '<option value="">Kurs auswählen</option>';
-                document.getElementById('course-select').disabled = true;
-            };
-
-            document.getElementById('school-select').onchange = function() {
-                const schoolId = this.value;
-                if (schoolId) {
-                    loadChairs(schoolId);
-                } else {
-                    document.getElementById('chair-select').innerHTML = '<option value="">Lehrstuhl auswählen</option>';
-                    document.getElementById('chair-select').disabled = true;
-                }
-                document.getElementById('course-select').innerHTML = '<option value="">Kurs auswählen</option>';
-                document.getElementById('course-select').disabled = true;
-            };
-
-            document.getElementById('chair-select').onchange = function() {
-                const chairId = this.value;
-                if (chairId) {
-                    loadCourses(chairId);
-                } else {
-                    document.getElementById('course-select').innerHTML = '<option value="">Kurs auswählen</option>';
-                    document.getElementById('course-select').disabled = true;
-                }
-            };
-        });
-
-        function loadUniversities() {
-            fetch('/api/universities')
-                .then(response => response.json())
-                .then(data => {
-                    const universitySelect = document.getElementById('university-select');
-                    universitySelect.innerHTML = '<option value="">Universität auswählen</option>';
-                    data.forEach(university => {
-                        const option = document.createElement('option');
-                        option.value = university[0]; // assuming the first element is the ID
-                        option.textContent = university[1]; // assuming the second element is the name
-                        universitySelect.appendChild(option);
-                    });
-                });
-        }
-
-        function loadSchools(universityId) {
-            fetch(`/api/schools/${universityId}`)
-                .then(response => response.json())
-                .then(data => {
-                    const schoolSelect = document.getElementById('school-select');
-                    schoolSelect.innerHTML = '<option value="">School auswählen</option>';
-                    data.forEach(school => {
-                        const option = document.createElement('option');
-                        option.value = school[0]; // assuming the first element is the ID
-                        option.textContent = school[1]; // assuming the second element is the name
-                        schoolSelect.appendChild(option);
-                    });
-                    schoolSelect.disabled = false;
-                });
-        }
-
-        function loadChairs(schoolId) {
-            fetch(`/api/chairs/${schoolId}`)
-                .then(response => response.json())
-                .then(data => {
-                    const chairSelect = document.getElementById('chair-select');
-                    chairSelect.innerHTML = '<option value="">Lehrstuhl auswählen</option>';
-                    data.forEach(chair => {
-                        const option = document.createElement('option');
-                        option.value = chair[0]; // assuming the first element is the ID
-                        option.textContent = chair[1]; // assuming the second element is the name
-                        chairSelect.appendChild(option);
-                    });
-                    chairSelect.disabled = false;
-                });
-        }
-
-        function loadCourses(chairId) {
-            fetch(`/api/courses/${chairId}`)
-                .then(response => response.json())
-                .then(data => {
-                    const courseSelect = document.getElementById('course-select');
-                    courseSelect.innerHTML = '<option value="">Kurs auswählen</option>';
-                    data.forEach(course => {
-                        const option = document.createElement('option');
-                        option.value = course[0];
-                        option.textContent = course[1];
-                        courseSelect.appendChild(option);
-                    });
-                    courseSelect.disabled = false;
-                });
-        }
-      </script>
+  window.onload = () => {
+    setupEventListeners();
+    loadUniversities();
+  };
+  </script>
 </body>
 </html>
