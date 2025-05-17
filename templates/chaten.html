@@ -155,15 +155,22 @@
       body: JSON.stringify({ question: msg, course_id: selectedCourse })
     })
     .then(r => r.json())
-    .then(({ answer, used_chunk, used_doc }) => {
-      if (used_chunk && used_doc) {
+    .then(({ answer, used_doc, highlight_snippet}) => {
+      if (used_doc) {
         const cleanDoc = used_doc.replace(/\\/g,'/').replace(/^\/?(?:uploads\/?)+/, '');
         const idx = pdfFiles.findIndex(p => p.replace(/\\/g,'/').endsWith(cleanDoc));
         if (idx !== -1) currentIndex = idx;
-        loadPDF(used_chunk);
       }
+
+      if (highlight_snippet) {
+        loadPDF(highlight_snippet);
+      } else {
+        loadPDF();
+      }
+
       const aEl = document.createElement('div');
-      aEl.textContent = answer; aEl.classList.add('answer');
+      aEl.textContent = answer; 
+      aEl.classList.add('answer');
       box.appendChild(aEl); box.scrollTop = box.scrollHeight;
     })
     .catch(e => console.error(e));

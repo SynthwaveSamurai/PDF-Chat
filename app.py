@@ -443,7 +443,7 @@ def ask():
     text_chunks_with_docs = get_text_chunks_and_docs(course_id)
     
     # Füge hier den course_id beim Aufruf hinzu
-    answer, used_chunk, used_doc = generate_answer_with_openai(question, most_similar, text_chunks_with_docs, course_id)
+    answer, used_chunk, used_doc, highlight_snippet= generate_answer_with_openai(question, most_similar, text_chunks_with_docs, course_id)
 
     if not used_doc:
         return jsonify({
@@ -455,7 +455,8 @@ def ask():
         "similar_texts": [text for _, _, text in most_similar],
         "documents": list(set([doc for _, doc, _ in most_similar])),
         "used_chunk": used_chunk,
-        "used_doc": used_doc
+        "used_doc": used_doc,
+        "highlight_snippet": highlight_snippet
     })
 
 def check_database_contents():
@@ -537,7 +538,7 @@ def generate_answer_with_openai(question, most_similar, text_chunks_with_docs, c
 
     if not context:
         print("Kein Kontext für die Frage vorhanden.")
-        return "Kein relevanter Kontext gefunden", None, None
+        return "Kein relevanter Kontext gefunden", None, None, None
 
     prompt = f"Antwort auf folgende Frage basierend auf den Informationen: {context}\n\nFrage: {question}\nAntwort:"
 
@@ -556,6 +557,7 @@ def generate_answer_with_openai(question, most_similar, text_chunks_with_docs, c
         # Verwende BM25, um den am besten passenden Chunk zu extrahieren
         used_chunk, used_doc = extract_used_chunk_via_bm25(message_content, text_chunks_with_docs)
 
+        highlight_snippet = extract_highlight_snippet(question, message_content, used_chunk)
 
         # Hole die IDs aus der Datenbank basierend auf dem Dokumentnamen und der course_id
         conn = sqlite3.connect('database.db')
@@ -574,14 +576,31 @@ def generate_answer_with_openai(question, most_similar, text_chunks_with_docs, c
             # Erstelle den Pfad
             doc_path = f"uploads/{university_id}\\{school_id}\\{chair_id}\\{course_id}\\{used_doc}"
             print(f"Verwendeter Text-Chunk: '{used_chunk}' aus dem Dokument '{doc_path}'")
-            return message_content, used_chunk, doc_path
+            return message_content, used_chunk, doc_path, highlight_snippet
         
         print("Kein passender Eintrag gefunden.")
-        return message_content, used_chunk, None
+
+        return message_content, used_chunk, None, highlight_snippet
 
     except Exception as e:
         print(f"OpenAI API Error: {str(e)}")
-        return "Es gab ein Problem bei der Verarbeitung der Anfrage.", None, None
+        return "Es gab ein Problem bei der Verarbeitung der Anfrage.", None, None, None
+    
+def extract_highlight_snippet(question: str, message_content: str, used_chunk: str) -> str:
+    prompt = f"""Aus dem verwendeten Textausschnitt sollst Du **nur den sehr kurzen Satzteil** zurückgeben, der die Antwort auf die Frage beinhaltet. Also konkrete Inforamtionen und keine Verweise. Also die Schlüsselinformationen. Frage: {question}; Antwort: {message_content}; Verwendeter Textausschnitt: {used_chunk}. Versuche das dieser Teil möglichst kurz ist. Verwende im Idealfall für 1-5 Wörter. Du darfst nur Teile verwenden die exakt so im Verwendeter Textausschnitt vorkommen, da ich diese Wörter dann später über die Suchfunktion finden will. Du darfst demnach auch nicht die Reihenfolge ändern oder andere Korrekturen vornehmen."""
+    resp = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role":"system", "content":"Du extrahierst kurze Highlight-Snippets. Also den kürzesten Abschnitt mit allen wichtigen Informationen."},
+            {"role":"user",   "content":prompt}
+        ],
+        max_tokens=50,
+        temperature=0.0
+    )
+
+    highlight_snippet = resp.choices[0].message.content.strip().strip('"\'')
+    print(f"📝 Highlight-Snippet: {highlight_snippet}")
+    return highlight_snippet
 
 def execute_query(query, params=()):
     conn = sqlite3.connect('database.db')
