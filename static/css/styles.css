@@ -129,3 +129,22 @@ body {
     background-color: yellow;
   }
   
+  .spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid rgba(0,0,0,0.1);
+    border-top-color: rgba(0,0,0,0.6);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 8px;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .hidden {
+    display: none;
+  }

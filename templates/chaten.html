@@ -37,6 +37,7 @@
       <div class="chat-input">
         <input type="text" id="chat-input" placeholder="Nachricht eingeben..." />
         <button id="send-button">Senden</button>
+        <div id="loading-spinner" class="spinner hidden"></div>
       </div>
     </div>
   </div>
@@ -143,11 +144,20 @@
     if (isPDFLoading || !selectedCourse) return;
     const input = document.getElementById('chat-input');
     const box   = document.getElementById('chat-box');
-    const msg   = input.value.trim(); if (!msg) return;
+    const spinner = document.getElementById('loading-spinner');
+    const button  = document.getElementById('send-button'); 
+    const msg   = input.value.trim(); 
+    if (!msg) return;
+
+
+    spinner.classList.remove('hidden');
+    button.disabled = true;
 
     const qEl = document.createElement('div');
-    qEl.textContent = msg; qEl.classList.add('question');
-    box.appendChild(qEl); input.value = '';
+    qEl.textContent = msg; 
+    qEl.classList.add('question');
+    box.appendChild(qEl); 
+    input.value = '';
 
     fetch('/api/ask', {
       method:'POST',
@@ -171,9 +181,15 @@
       const aEl = document.createElement('div');
       aEl.textContent = answer; 
       aEl.classList.add('answer');
-      box.appendChild(aEl); box.scrollTop = box.scrollHeight;
+      box.appendChild(aEl); 
+      box.scrollTop = box.scrollHeight;
     })
-    .catch(e => console.error(e));
+    .catch(e => console.error(e))
+    .finally(() => {
+    // Spinner verstecken & Button aktivieren
+      spinner.classList.add('hidden');
+      button.disabled = false;
+    });
   }
 
   function setupEventListeners() {
