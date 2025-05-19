@@ -13,7 +13,14 @@
 <body>
   <div class="container">
     <div class="documents">
-      <h2>Dokumente</h2>
+      <div class="documents-header">
+        <button
+          id="back-to-home"
+          class="back-button"
+          onclick="window.location.href='/'"
+        >←</button>
+        <h2>Dokumente</h2>
+      </div>
       <select id="university-select"><option value="">Universität auswählen</option></select>
       <select id="school-select" disabled><option value="">School auswählen</option></select>
       <select id="chair-select" disabled><option value="">Lehrstuhl auswählen</option></select>
@@ -94,18 +101,18 @@
   }
 
   async function loadDocuments() {
-    if (!selectedCourse) return;
     isPDFLoading = true;
     const res = await fetch('/api/documents', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        university_id: selectedUniversity,
-        school_id:     selectedSchool,
-        chair_id:      selectedChair,
-        course_id:     selectedCourse
+        university_id: selectedUniversity || null,
+        school_id:     selectedSchool     || null,
+        chair_id:      selectedChair      || null,
+        course_id:     selectedCourse     || null
       })
     });
     pdfFiles = await res.json();
+    console.log("📂 pdfFiles nach loadDocuments():", pdfFiles);
     currentIndex = 0;
     loadPDF();
     isPDFLoading = false;
@@ -141,7 +148,7 @@
   }
 
   function sendMessage() {
-    if (isPDFLoading || !selectedCourse) return;
+    if (isPDFLoading) return;
     const input = document.getElementById('chat-input');
     const box   = document.getElementById('chat-box');
     const spinner = document.getElementById('loading-spinner');
@@ -162,27 +169,51 @@
     fetch('/api/ask', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ question: msg, course_id: selectedCourse })
+      body: JSON.stringify({ 
+        question: msg, 
+        university_id: selectedUniversity || null,
+        school_id:     selectedSchool     || null,
+        chair_id:      selectedChair      || null,
+        course_id:     selectedCourse     || null
+      })
     })
     .then(r => r.json())
     .then(({ answer, used_doc, highlight_snippet}) => {
-      if (used_doc) {
-        const cleanDoc = used_doc.replace(/\\/g,'/').replace(/^\/?(?:uploads\/?)+/, '');
-        const idx = pdfFiles.findIndex(p => p.replace(/\\/g,'/').endsWith(cleanDoc));
-        if (idx !== -1) currentIndex = idx;
-      }
+      console.log("📑 used_doc:", used_doc);
+      console.log("🏷️ aktuell in pdfFiles[currentIndex]:", pdfFiles[currentIndex]);
 
-      if (highlight_snippet) {
-        loadPDF(highlight_snippet);
-      } else {
-        loadPDF();
-      }
+      // if (used_doc) {
+      //   const cleanDoc = used_doc.replace(/\\/g,'/').replace(/^\/?(?:uploads\/?)+/, '');
+      //   const idx = pdfFiles.findIndex(p => p.replace(/\\/g,'/').endsWith(cleanDoc));
+      //   if (idx !== -1) currentIndex = idx;
+      // }
+
+      // if (highlight_snippet) {
+      //   loadPDF(highlight_snippet);
+      // } else {
+      //   loadPDF();
+      // }
 
       const aEl = document.createElement('div');
       aEl.textContent = answer; 
       aEl.classList.add('answer');
       box.appendChild(aEl); 
       box.scrollTop = box.scrollHeight;
+
+      if (used_doc) {
+        const cleanDoc = used_doc.replace(/\\/g,'/').replace(/^\/?(?:uploads\/?)+/, '');
+        const idx = pdfFiles.findIndex(p => p.replace(/\\/g,'/').endsWith(cleanDoc));
+        if (idx !== -1) {
+          currentIndex = idx;
+      // Highlight-Snippet oder Standard-Laden
+          if (highlight_snippet) {
+            loadPDF(highlight_snippet);
+          } else {
+            loadPDF();
+          }
+        }
+      }
+
     })
     .catch(e => console.error(e))
     .finally(() => {
@@ -192,19 +223,59 @@
     });
   }
 
+  // function setupEventListeners() {
+  //   document.getElementById('university-select').addEventListener('change', function(){
+  //     selectedUniversity = this.value; 
+  //     resetSelect('school-select', 'School auswählen'); loadSchools(this.value);
+  //   });
+  //   document.getElementById('school-select').addEventListener('change', function(){
+  //     selectedSchool = this.value; resetSelect('chair-select','Lehrstuhl auswählen'); loadChairs(this.value);
+  //   });
+  //   document.getElementById('chair-select').addEventListener('change', function(){
+  //     selectedChair = this.value; resetSelect('course-select','Kurs auswählen'); loadCourses(this.value);
+  //   });
+  //   document.getElementById('course-select').addEventListener('change', function(){
+  //     selectedCourse = this.value; if(this.value) loadDocuments(); else document.getElementById('viewerContainer').innerHTML='';
+  //   });
+  //   document.getElementById('prev-pdf').addEventListener('click', showPreviousPDF);
+  //   document.getElementById('next-pdf').addEventListener('click', showNextPDF);
+  //   document.getElementById('send-button').addEventListener('click', sendMessage);
+  // }
+
   function setupEventListeners() {
-    document.getElementById('university-select').addEventListener('change', function(){
-      selectedUniversity = this.value; resetSelect('school-select', 'School auswählen'); loadSchools(this.value);
-    });
-    document.getElementById('school-select').addEventListener('change', function(){
-      selectedSchool = this.value; resetSelect('chair-select','Lehrstuhl auswählen'); loadChairs(this.value);
-    });
-    document.getElementById('chair-select').addEventListener('change', function(){
-      selectedChair = this.value; resetSelect('course-select','Kurs auswählen'); loadCourses(this.value);
-    });
-    document.getElementById('course-select').addEventListener('change', function(){
-      selectedCourse = this.value; if(this.value) loadDocuments(); else document.getElementById('viewerContainer').innerHTML='';
-    });
+    document.getElementById('university-select')
+      .addEventListener('change', function(){
+        selectedUniversity = this.value || null;
+        resetSelect('school-select', 'School auswählen');
+        resetSelect('chair-select', 'Lehrstuhl auswählen');
+        resetSelect('course-select', 'Kurs auswählen');
+        loadSchools(this.value);
+        loadDocuments();
+      });
+
+    document.getElementById('school-select')
+      .addEventListener('change', function(){
+        selectedSchool = this.value || null;
+        resetSelect('chair-select', 'Lehrstuhl auswählen');
+        resetSelect('course-select', 'Kurs auswählen');
+        loadChairs(this.value);
+        loadDocuments(); 
+      });
+
+    document.getElementById('chair-select')
+      .addEventListener('change', function(){
+        selectedChair = this.value || null;
+        resetSelect('course-select', 'Kurs auswählen');
+        loadCourses(this.value);
+        loadDocuments();   
+      });
+
+    document.getElementById('course-select')
+      .addEventListener('change', function(){
+        selectedCourse = this.value || null;
+        loadDocuments();      
+      });
+
     document.getElementById('prev-pdf').addEventListener('click', showPreviousPDF);
     document.getElementById('next-pdf').addEventListener('click', showNextPDF);
     document.getElementById('send-button').addEventListener('click', sendMessage);
@@ -216,9 +287,10 @@
     s.disabled = true;
   }
 
-  window.onload = () => {
+  window.onload = async () => {
     setupEventListeners();
-    loadUniversities();
+    await loadUniversities();
+    loadDocuments();
   };
   </script>
 </body>

@@ -46,20 +46,43 @@ def find_all_pdfs(base_directory):
                 pdf_files.append(os.path.join(relative_path, file))
     return pdf_files
 
-def get_most_similar_embeddings_for_course(question, course_id, min_similarity_threshold=0.8):
-    #print(f"Fetching most similar embeddings for course with ID {course_id}")
+def get_most_similar_embeddings_for_course(question, university_id=None, school_id=None, chair_id=None, course_id=None, min_similarity_threshold=0.8):
+    
+    #1) Frage in embedding umwandeln
     question_embedding = np.array(embed_question(question)).reshape(1, -1)  # Konvertiere die Frageembedding in eine 2D-Form
 
+    #2) Hier ist die Datenbankabfrage
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
-    try: 
-        c.execute("SELECT document, text_chunk, embedding FROM embeddings WHERE course_id = ?", (course_id,))
-        rows = c.fetchall()
-        #print(f"Fetched {len(rows)} rows from database for course_id {course_id}.")
-    finally:
-        conn.close()
+
+    #3) Was wurde alles ausgewählt?/ In welchem Bereich soll gesucht werden?
+    conditions, params = [], []
+    if university_id:
+        conditions.append("university_id = ?"); params.append(university_id)
+    if school_id:
+        conditions.append("school_id = ?");     params.append(school_id)
+    if chair_id:
+        conditions.append("chair_id = ?");      params.append(chair_id)
+    if course_id:
+        conditions.append("course_id = ?");     params.append(course_id)
+
+    query = "SELECT document, text_chunk, embedding FROM embeddings"
+
+    if conditions:
+        query += " WHERE " + " AND ".join(conditions)
+    c.execute(query, params)
+    rows = c.fetchall()
+    conn.close()
+
+    #try: 
+    #    c.execute("SELECT document, text_chunk, embedding FROM embeddings WHERE course_id = ?", (course_id,))
+    #    rows = c.fetchall()
+    #    #print(f"Fetched {len(rows)} rows from database for course_id {course_id}.")
+    #finally:
+    #    conn.close()
 
     similarities = []
+
     for idx, (doc, text, embedding_str) in enumerate(rows):
         try:
             # Lade das Dokumentembedding und konvertiere es in eine 2D-Form
@@ -266,15 +289,35 @@ def get_text_chunks_for_course(course_id):
     conn.close()
     return [row[0] for row in rows]
 
-def get_text_chunks_and_docs(course_id):
+def get_text_chunks_and_docs(university_id=None, school_id=None, chair_id=None, course_id=None):
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
-    c.execute("SELECT text_chunk, document FROM embeddings WHERE course_id = ?", (course_id,))
+
+    conditions, params = [], []
+    if university_id is not None:
+        conditions.append("university_id = ?"); params.append(university_id)
+    if school_id     is not None:
+        conditions.append("school_id     = ?"); params.append(school_id)
+    if chair_id      is not None:
+        conditions.append("chair_id      = ?"); params.append(chair_id)
+    if course_id     is not None:
+        conditions.append("course_id     = ?"); params.append(course_id)
+
+
+    #c.execute("SELECT text_chunk, document FROM embeddings WHERE course_id = ?", (course_id,))
+    query = "SELECT text_chunk, document FROM embeddings"
+    if conditions:
+        query += " WHERE " + " AND ".join(conditions)
+
+    c.execute(query, params)
     rows = c.fetchall()
     conn.close()
-    print("Fetched text chunks and docs:")
-    for row in rows:
-        print(row)
+
+    #rows = c.fetchall()
+    #conn.close()
+    # print("Fetched text chunks and docs:")
+    # for row in rows:
+    #     print(row)
 
     text_chunks_with_docs = [(row[0], row[1]) for row in rows]
     return text_chunks_with_docs
@@ -434,21 +477,40 @@ def universities():
 def ask():
     data = request.get_json()
     question = data.get('question')
+    university_id = data.get('university_id')
+    school_id = data.get('school_id')   
+    chair_id = data.get('chair_id')
     course_id = data.get('course_id')
 
-    if not question or not course_id:
+    if not question:
         return jsonify({"error": "Invalid data"}), 400
 
-    most_similar = get_most_similar_embeddings_for_course(question, course_id)
-    text_chunks_with_docs = get_text_chunks_and_docs(course_id)
+    most_similar = get_most_similar_embeddings_for_course(
+        question, 
+        university_id=university_id,
+        school_id=school_id,
+        chair_id=chair_id,
+        course_id=course_id
+        )
     
-    # Füge hier den course_id beim Aufruf hinzu
-    answer, used_chunk, used_doc, highlight_snippet= generate_answer_with_openai(question, most_similar, text_chunks_with_docs, course_id)
+    text_chunks_with_docs = get_text_chunks_and_docs(
+        university_id=university_id,
+        school_id=school_id,
+        chair_id=chair_id,
+        course_id=course_id
+        )
+    
+    answer, used_chunk, used_doc, highlight_snippet= generate_answer_with_openai(
+        question, 
+        most_similar, 
+        text_chunks_with_docs, 
+        course_id
+        )
 
-    if not used_doc:
-        return jsonify({
-            "error": "Keine passende Dokumentation gefunden."
-        })
+    # if not used_doc:
+    #     return jsonify({
+    #         "error": "Keine passende Dokumentation gefunden."
+    #     })
 
     return jsonify({
         "answer": answer,
@@ -563,18 +625,18 @@ def generate_answer_with_openai(question, most_similar, text_chunks_with_docs, c
         conn = sqlite3.connect('database.db')
         c = conn.cursor()
         c.execute("""
-            SELECT university_id, school_id, chair_id
+            SELECT university_id, school_id, chair_id, course_id
             FROM embeddings
-            WHERE course_id = ? AND document = ?
+            WHERE document = ?
             LIMIT 1
-        """, (course_id, used_doc))
+        """, (used_doc,))
         result = c.fetchone()
         conn.close()
 
         if result:
-            university_id, school_id, chair_id = result
+            university_id, school_id, chair_id, course_id_db = result
             # Erstelle den Pfad
-            doc_path = f"uploads/{university_id}\\{school_id}\\{chair_id}\\{course_id}\\{used_doc}"
+            doc_path = f"uploads/{university_id}\\{school_id}\\{chair_id}\\{course_id_db}\\{used_doc}"
             print(f"Verwendeter Text-Chunk: '{used_chunk}' aus dem Dokument '{doc_path}'")
             return message_content, used_chunk, doc_path, highlight_snippet
         
