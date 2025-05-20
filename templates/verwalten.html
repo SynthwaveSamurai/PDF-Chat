@@ -5,175 +5,76 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dokumente verwalten</title>
-    <style>
-        body,
-        html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            font-family: Arial, sans-serif;
-        }
-
-        .container {
-            display: grid;
-            height: 100vh;
-            width: 100vw;
-            place-items: center;
-        }
-
-        .bubbles {
-            display: grid;
-            gap: 20px;
-            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-            width: 80vw;
-            height: 80vh;
-        }
-
-        .bubble {
-            background: black;
-            color: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            border-radius: 50%;
-            aspect-ratio: 1;
-            cursor: pointer;
-            margin: 0 auto;
-        }
-
-        form {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            height: 100%;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0, 0, 0, 0.4);
-        }
-
-        .modal-content {
-            background-color: white;
-            margin: 15% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-            max-width: 600px;
-        }
-
-        .add-button {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            background-color: #fff;
-            border: none;
-            color: #000;
-            font-size: 1rem;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            cursor: pointer;
-            box-shadow: 0px 0px 3px rgba(0, 0, 0, 0.3);
-        }
-
-        .add-button:hover {
-            background-color: #ddd;
-        }
-
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .close:hover,
-        .close:focus {
-            color: black;
-            text-decoration: none;
-            cursor: pointer;
-        }
-
-        ul {
-            list-style-type: none;
-            padding: 0;
-        }
-
-        li {
-            background-color: #f0f0f0;
-            margin: 5px 0;
-            padding: 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            text-align: center;
-        }
-
-        li:hover {
-            background-color: #ddd;
-        }
-
-        .selected {
-            font-size: 0.9rem;
-            margin-top: 10px;
-            color: black;
-            text-align: center;
-            width: 100%;
-            display: flex;
-            justify-content: center;
-        }
-
-        @media (orientation: portrait) {
-            .bubbles {
-                grid-template-rows: repeat(auto-fit, minmax(120px, 1fr));
-            }
-        }
-    </style>
+     <link rel="stylesheet" href="/static/css/styles-verwalten.css" />
 </head>
 
 <body>
+    <a href="{{ url_for('index') }}" class="back-button" title="Zurück zur Hauptseite">←</a>
     <div class="container">
         <div class="bubbles">
-            <!-- Erste Blase: Universität -->
-            <div>
+
+            <!-- Universität -->
+            <div class="bubble-wrapper">
                 <div class="bubble" onclick="showModal('Universitäten')">
                     Universität auswählen
+                    <button
+                        type="button"
+                        class="add-button bubble-add"
+                        onclick="showAddElementForm('Universität')"
+                        title="Neue Universität hinzufügen"
+                    >+</button>
                 </div>
-                <div id="selectedUniversity" class="selected">Keine Universität ausgewählt</div>
+                <div id="selectedUniversity" class="selected">
+                    Keine Universität ausgewählt
+                </div>
             </div>
-            
-            <!-- Zweite Blase: School -->
-            <div>
+
+            <!-- School -->
+            <div class="bubble-wrapper">
                 <div class="bubble" onclick="showModal('Schools')">
                     School auswählen
+                    <button
+                        type="button"
+                        class="add-button bubble-add"
+                        onclick="showAddElementForm('School')"
+                        title="Neue School hinzufügen"
+                    >+</button>
                 </div>
-                <div id="selectedSchool" class="selected">Keine School ausgewählt</div>
+                <div id="selectedSchool" class="selected">
+                Keine School ausgewählt
+                </div>
             </div>
-            
-            <!-- Dritte Blase: Lehrstuhl -->
-            <div>
+
+            <!-- Lehrstuhl -->
+            <div class="bubble-wrapper">
                 <div class="bubble" onclick="showModal('Lehrstühle')">
                     Lehrstuhl auswählen
+                    <button
+                        type="button"
+                        class="add-button bubble-add"
+                        onclick="showAddElementForm('Lehrstuhl')"
+                        title="Neuen Lehrstuhl hinzufügen"
+                    >+</button>
                 </div>
-                <div id="selectedDepartment" class="selected">Kein Lehrstuhl ausgewählt</div>
+                <div id="selectedDepartment" class="selected">
+                Kein Lehrstuhl ausgewählt
+                </div>
             </div>
-            
-            <!-- Vierte Blase: Kurse -->
-            <div>
+
+            <!-- Kurs -->
+            <div class="bubble-wrapper">
                 <div class="bubble" onclick="showModal('Kurse')">
                     Kurs auswählen
+                    <button
+                        type="button"
+                        class="add-button bubble-add"
+                        onclick="showAddElementForm('Kurs')"
+                        title="Neuen Kurs hinzufügen"
+                    >+</button>
                 </div>
-                <div id="selectedCourse" class="selected">Kein Kurs ausgewählt</div>
+                <div id="selectedCourse" class="selected">
+                Kein Kurs ausgewählt
+                </div>
             </div>
 
             <!-- Fünfte Blase: Dokument hochladen -->
@@ -195,6 +96,12 @@
     <!-- Modal zur Auswahl -->
     <div id="modal" class="modal">
         <div class="modal-content">
+            <!-- ↓ Hier den „+“-Button einfügen: -->
+            <button
+                class="add-button"
+                onclick="showAddElementForm(getElementTypeFromTitle(document.getElementById('modalTitle').innerText))"
+                title="Neues Element hinzufügen"
+            >+</button>
             <span class="close" onclick="closeModal()">&times;</span>
             <h2 id="modalTitle"></h2>
             <ul id="elementList">

@@ -1,0 +1,177 @@
+/* Ausgelagerte Styles aus deinem <style>-Block */
+body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    font-family: Arial, sans-serif;
+    background-color: #f0f0f5;
+  }
+  
+  .container {
+    display: flex;
+    width: 100%;
+    height: 100%;
+  }
+  
+  .documents {
+    flex: 1;
+    border-right: 2px solid #ddd;
+    padding: 10px;
+    background-color: #f8f8f8;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #fff;
+  }
+  
+  .navigation-container {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  
+  #prev-pdf,
+  #next-pdf {
+    width: 49%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #fff;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  
+  #prev-pdf:hover,
+  #next-pdf:hover {
+    background-color: #f0f0f5;
+  }
+  
+  .viewerContainer {
+    flex: 1;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    margin-top: 10px;
+  }
+  
+  .chat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .chat-box {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    background-color: #fff;
+  }
+  
+  .chat-input {
+    display: flex;
+    border-top: 2px solid #ddd;
+    background-color: #fafafa;
+    padding: 10px;
+  }
+  
+  .chat-input input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    margin-right: 10px;
+  }
+  
+  .chat-input button {
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  
+  .chat-input button:hover {
+    background-color: #0056b3;
+  }
+  
+  .question,
+  .answer {
+    max-width: 80%;
+    margin-bottom: 10px;
+    border: 2px solid #ddd;
+    padding: 10px;
+    border-radius: 5px;
+  }
+  
+  .question {
+    text-align: right;
+    margin-left: auto;
+    background-color: rgba(26, 48, 208, 0.25);
+    color: #000;
+  }
+  
+  .answer {
+    text-align: left;
+    margin-right: auto;
+    background-color: rgba(184, 17, 17, 0.25);
+    color: #000;
+  }
+  
+  .textLayer .highlight {
+    background-color: yellow;
+  }
+  
+  .spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid rgba(0,0,0,0.1);
+    border-top-color: rgba(0,0,0,0.6);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 8px;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .hidden {
+    display: none;
+  }
+
+  .documents-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;          
+    margin-bottom: 1rem; 
+  }
+
+  .back-button {
+    width: 36px;
+    height: 36px;
+    border: 2px solid rgba(0,0,0,0.6);
+    border-radius: 50%;      /* rund */
+    background-color: #eee;  /* Hellgrauer Hintergrund */
+    cursor: pointer;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+  }
+
+  .back-button:hover {
+    background-color: #ddd;
+  }
+
+  
