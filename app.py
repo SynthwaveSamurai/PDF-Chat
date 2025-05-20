@@ -24,8 +24,7 @@ tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
 model = AutoModel.from_pretrained("bert-base-uncased")
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = 'uploads'
-UPLOAD_FOLDER = 'uploads' 
+app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'uploads')
 
 def embed_question(question):
     #print(f"Embedding question: {question}")
@@ -706,45 +705,33 @@ def get_documents():
 
     return jsonify(document_paths)
 
-@app.route('/api/documents/<int:university_id>/<int:school_id>/<int:chair_id>/<int:course_id>', methods=['GET'])
-def list_documents(university_id, school_id, chair_id, course_id):
-    # Erstellen Sie den Pfad basierend auf den IDs
-    directory = os.path.join(UPLOAD_FOLDER, str(university_id), str(school_id), str(chair_id), str(course_id))
+# @app.route('/api/documents/<int:university_id>/<int:school_id>/<int:chair_id>/<int:course_id>', methods=['GET'])
+# def list_documents(university_id, school_id, chair_id, course_id):
+#     # Erstellen Sie den Pfad basierend auf den IDs
+#     directory = os.path.join(UPLOAD_FOLDER, str(university_id), str(school_id), str(chair_id), str(course_id))
     
-    if not os.path.exists(directory):
-        return jsonify({"error": "Dokumentverzeichnis nicht gefunden"}), 404
+#     if not os.path.exists(directory):
+#         return jsonify({"error": "Dokumentverzeichnis nicht gefunden"}), 404
 
-    # Listet alle PDFs im Verzeichnis auf
-    documents = [f for f in os.listdir(directory) if f.endswith('.pdf')]
-    return jsonify(documents)
+#     # Listet alle PDFs im Verzeichnis auf
+#     documents = [f for f in os.listdir(directory) if f.endswith('.pdf')]
+#     return jsonify(documents)
 
 @app.route('/uploads/<path:filepath>', methods=['GET'])
 def download_file(filepath):
-    decoded_filepath = unquote(filepath)
-    directory_path, filename = os.path.split(decoded_filepath)
-    full_path = os.path.join(
-        app.config['UPLOAD_FOLDER'],
-        directory_path.replace('/', os.path.sep),
-        filename
-    )
-
-    # Logging und Existenzüberprüfung
-    app.logger.info(f"Trying to access: {full_path}")
-    if not os.path.exists(full_path):
-        app.logger.error(f"File not found: {full_path}")
-        return jsonify({"error": "File not found"}), 404
-
-    # 4. PDF inline ausliefern, ohne Caching
+    app.logger.info(f"serve_upload: {filepath!r}")
     try:
-        return send_file(
-            full_path,           # hier den absoluten Pfad verwenden
-            mimetype='application/pdf',
-            as_attachment=False, # inline im Browser darstellen
-            conditional=False,     # unterstützt Range-Requests
-            max_age=0            # Cache-Control: no-cache
+        return send_from_directory(
+            directory=app.config['UPLOAD_FOLDER'],
+            path=filepath,
+            as_attachment=False,
+            mimetype='application/pdf'
         )
+    except FileNotFoundError:
+        app.logger.error(f"File not found in uploads: {filepath!r}")
+        return jsonify({"error": "File not found"}), 404
     except Exception as e:
-        app.logger.error(f"Error sending file {full_path}: {e}")
+        app.logger.error(f"Error sending file {filepath!r}: {e}")
         return jsonify({"error": "Could not send file"}), 500
 
 def insert_into_db(document, text_chunk, embedding, university_id=None, school_id=None, chair_id=None, course_id=None):

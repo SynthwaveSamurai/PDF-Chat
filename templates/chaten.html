@@ -119,7 +119,10 @@
   }
 
   function getPdfUrl(path) {
-    const clean = path.replace(/\\/g,'/').replace(/^\/?(?:uploads\/?)+/, '');
+    const clean = path
+      .replace(/\\/g,'/')
+      .replace(/^\/?(?:uploads\/?)+/, '');
+      
     return '/static/js/pdfjs/web/viewer.html?file='
          + encodeURIComponent('/uploads/' + clean);
   }
