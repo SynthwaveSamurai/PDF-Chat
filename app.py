@@ -27,13 +27,11 @@ app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'uploads')
 
 def embed_question(question):
-    #print(f"Embedding question: {question}")
     inputs = tokenizer(question, return_tensors="pt", truncation=True, padding=True, max_length=512)
     with torch.no_grad():
         outputs = model(**inputs)
     question_embedding = outputs.last_hidden_state[:, 0, :].squeeze().numpy()
     
-    #print("Frage-Embedding:", question_embedding)
     return question_embedding
 
 def find_all_pdfs(base_directory):
@@ -47,14 +45,12 @@ def find_all_pdfs(base_directory):
 
 def get_most_similar_embeddings_for_course(question, university_id=None, school_id=None, chair_id=None, course_id=None, min_similarity_threshold=0.8):
     
-    #1) Frage in embedding umwandeln
-    question_embedding = np.array(embed_question(question)).reshape(1, -1)  # Konvertiere die Frageembedding in eine 2D-Form
 
-    #2) Hier ist die Datenbankabfrage
+    question_embedding = np.array(embed_question(question)).reshape(1, -1)  
+
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
 
-    #3) Was wurde alles ausgewählt?/ In welchem Bereich soll gesucht werden?
     conditions, params = [], []
     if university_id:
         conditions.append("university_id = ?"); params.append(university_id)
@@ -73,28 +69,21 @@ def get_most_similar_embeddings_for_course(question, university_id=None, school_
     rows = c.fetchall()
     conn.close()
 
-    #try: 
-    #    c.execute("SELECT document, text_chunk, embedding FROM embeddings WHERE course_id = ?", (course_id,))
-    #    rows = c.fetchall()
-    #    #print(f"Fetched {len(rows)} rows from database for course_id {course_id}.")
-    #finally:
-    #    conn.close()
-
     similarities = []
 
     for idx, (doc, text, embedding_str) in enumerate(rows):
         try:
-            # Lade das Dokumentembedding und konvertiere es in eine 2D-Form
+
             embedding = np.array(json.loads(embedding_str)).reshape(1, -1)
-            # Berechne die Kosinusähnlichkeit
+
             similarity = cosine_similarity(question_embedding, embedding)[0][0]
             similarities.append((similarity, doc, text))
-            #print(f"Processed row {idx}: doc={doc}, similarity={similarity}")
+
         except Exception as e:
             print(f"Error decoding JSON for document {doc}: {e}")
             continue
 
-    # Sortiere die Ergebnisse basierend auf der Ähnlichkeit
+
     similarities.sort(reverse=True, key=lambda x: x[0])
     return similarities [:5]
 
@@ -139,20 +128,19 @@ def get_courses_by_chair(chair_id):
     conn.close()
     return courses
 
-# Erstelle die Datenbankverbindung und Tabelle
+
 def init_db():
     try:
-        # Verbindung zur Datenbank herstellen
+
         conn = sqlite3.connect('database.db')
         c = conn.cursor()
-        print("Datenbankverbindung hergestellt.")  # Debug-Ausgabe
+        print("Datenbankverbindung hergestellt.")  
 
-        # Tabellen erstellen
         c.execute('''CREATE TABLE IF NOT EXISTS university (
             id INTEGER PRIMARY KEY,
             name TEXT NOT NULL
         )''')
-        print("Tabelle 'university' erstellt oder existiert bereits.")  # Debug-Ausgabe
+        print("Tabelle 'university' erstellt oder existiert bereits.") 
 
         c.execute('''CREATE TABLE IF NOT EXISTS school (
             id INTEGER PRIMARY KEY,
@@ -160,7 +148,7 @@ def init_db():
             university_id INTEGER,
             FOREIGN KEY(university_id) REFERENCES university(id)
         )''')
-        print("Tabelle 'school' erstellt oder existiert bereits.")  # Debug-Ausgabe
+        print("Tabelle 'school' erstellt oder existiert bereits.")  
 
         c.execute('''CREATE TABLE IF NOT EXISTS chair (
             id INTEGER PRIMARY KEY,
@@ -168,15 +156,14 @@ def init_db():
             school_id INTEGER,
             FOREIGN KEY(school_id) REFERENCES school(id)
         )''')
-        print("Tabelle 'chair' erstellt oder existiert bereits.")  # Debug-Ausgabe
-
+        print("Tabelle 'chair' erstellt oder existiert bereits.")  
         c.execute('''CREATE TABLE IF NOT EXISTS course (
             id INTEGER PRIMARY KEY,
             name TEXT NOT NULL,
             chair_id INTEGER,
             FOREIGN KEY(chair_id) REFERENCES chair(id)
         )''')
-        print("Tabelle 'course' erstellt oder existiert bereits.")  # Debug-Ausgabe
+        print("Tabelle 'course' erstellt oder existiert bereits.")  
 
         c.execute('''CREATE TABLE IF NOT EXISTS embeddings (
             id INTEGER PRIMARY KEY,
@@ -192,35 +179,31 @@ def init_db():
             FOREIGN KEY(chair_id) REFERENCES chair(id),
             FOREIGN KEY(course_id) REFERENCES course(id)
         )''')
-        print("Tabelle 'embeddings' erstellt oder existiert bereits.")  # Debug-Ausgabe
+        print("Tabelle 'embeddings' erstellt oder existiert bereits.")  
 
-        # Änderungen übernehmen
         conn.commit()
-        print("Alle Tabellen erfolgreich erstellt oder existierten bereits.")  # Debug-Ausgabe
+        print("Alle Tabellen erfolgreich erstellt oder existierten bereits.") 
 
     except sqlite3.Error as e:
-        print("Datenbankinitialisierungsfehler: ", e.args[0])  # Debug-Ausgabe über den Fehler
+        print("Datenbankinitialisierungsfehler: ", e.args[0]) 
 
     finally:
-        # Verbindung zur Datenbank schließen
         if conn:
             conn.close()
-            print("Datenbankverbindung geschlossen.")  # Debug-Ausgabe
+            print("Datenbankverbindung geschlossen.") 
 
 def get_all_universities():
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
-    c.execute("SELECT id, name FROM university")  # Annahme: Die Tabelle 'university' hat Spalten 'id' und 'name'
+    c.execute("SELECT id, name FROM university") 
     universities = c.fetchall()
     conn.close()
     return universities
 
-# Füge Text, Datei und Embedding in die Tabelle ein
 def insert_into_db(document, text_chunk, embedding, university_id=None, school_id=None, chair_id=None, course_id=None):
     try:
         conn = sqlite3.connect('database.db')
         c = conn.cursor()
-        # Speichere das Embedding als JSON-freundlicher String
         embedding_str = json.dumps(embedding.tolist())
         c.execute("""
             INSERT INTO embeddings (document, text_chunk, embedding, university_id, school_id, chair_id, course_id)
@@ -232,7 +215,6 @@ def insert_into_db(document, text_chunk, embedding, university_id=None, school_i
     finally:
         conn.close()
 
-#Text aus PDF extrahieren
 def extract_text_from_pdf(file_path):
     with open(file_path, 'rb') as file:
         reader = PyPDF2.PdfReader(file)
@@ -244,26 +226,22 @@ def extract_text_from_pdf(file_path):
     return text
 
 def split_text_into_hierarchical_chunks(text, chunk_size=50, overlap=25):
-    # Worttokenisierung
     words = nltk.word_tokenize(text)
     chunks = []
 
-    # Stelle sicher, dass die Werte für Chunk-Größe und Überlappung gültig sind
     if chunk_size <= 0 or overlap < 0 or overlap >= chunk_size:
         raise ValueError("Ungültige Werte für chunk_size oder overlap angegeben.")
 
-    step = chunk_size - overlap  # Schrittweite zur Erstellung der überlappenden Chunks
+    step = chunk_size - overlap  
 
     for start in range(0, len(words), step):
         end = start + chunk_size
-        # Füge den Textchunk zur Liste der Chunks hinzu
         chunk = words[start:end]
         if chunk:
             chunks.append(' '.join(chunk))
 
     return chunks
 
-#Text in Embeddings umwandeln
 def generate_embeddings(text_chunks):
     tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
     model = AutoModel.from_pretrained("bert-base-uncased")
@@ -302,8 +280,6 @@ def get_text_chunks_and_docs(university_id=None, school_id=None, chair_id=None, 
     if course_id     is not None:
         conditions.append("course_id     = ?"); params.append(course_id)
 
-
-    #c.execute("SELECT text_chunk, document FROM embeddings WHERE course_id = ?", (course_id,))
     query = "SELECT text_chunk, document FROM embeddings"
     if conditions:
         query += " WHERE " + " AND ".join(conditions)
@@ -311,12 +287,6 @@ def get_text_chunks_and_docs(university_id=None, school_id=None, chair_id=None, 
     c.execute(query, params)
     rows = c.fetchall()
     conn.close()
-
-    #rows = c.fetchall()
-    #conn.close()
-    # print("Fetched text chunks and docs:")
-    # for row in rows:
-    #     print(row)
 
     text_chunks_with_docs = [(row[0], row[1]) for row in rows]
     return text_chunks_with_docs
@@ -506,11 +476,6 @@ def ask():
         course_id
         )
 
-    # if not used_doc:
-    #     return jsonify({
-    #         "error": "Keine passende Dokumentation gefunden."
-    #     })
-
     return jsonify({
         "answer": answer,
         "similar_texts": [text for _, _, text in most_similar],
@@ -537,29 +502,23 @@ def check_database_contents():
                 print(f"Fehler beim Laden von Embeddings für Dokument {doc}: {e}")
 
 def prepare_search_models(text_chunks_with_docs):
-    # Extrahiere nur die Text-Chunks, nicht die zugehörigen Dokumentinfos
     text_chunks = [chunk for chunk, _ in text_chunks_with_docs]
     
-    # TF-IDF Vektorisierer vorbereiten
     tfidf_vectorizer = TfidfVectorizer()
     tfidf_matrix = tfidf_vectorizer.fit_transform(text_chunks)
 
-    # BM25 vorbereiten
     tokenized_chunks = [nltk.word_tokenize(chunk.lower()) for chunk in text_chunks]
     bm25 = BM25Okapi(tokenized_chunks)
     
     return tfidf_vectorizer, tfidf_matrix, bm25, tokenized_chunks
 
 def extract_used_chunk_via_bm25(answer, text_chunks_with_docs):
-    # Tokenisiere alle Chunks für BM25
     tokenized_chunks = [nltk.word_tokenize(chunk.lower()) for chunk, _ in text_chunks_with_docs]
     bm25 = BM25Okapi(tokenized_chunks)
 
-    # Tokenisiere und berechne die Ähnlichkeit der Antwort mit den Chunks
     tokenized_answer = nltk.word_tokenize(answer.lower())
     scores = bm25.get_scores(tokenized_answer)
 
-    # Finde den Index des Chunks mit dem höchsten Score
     best_chunk_idx = scores.argmax()
     best_chunk, best_doc = text_chunks_with_docs[best_chunk_idx]
     print(f"Bester gematchter chunk: '{best_chunk}' in document: '{best_doc}' mit score: {scores[best_chunk_idx]}")
@@ -585,12 +544,10 @@ def generate_combined_context(most_similar, text_chunks_with_docs, question):
     tfidf_indices = search_with_tfidf(tfidf_vectorizer, tfidf_matrix, question)
     bm25_indices = search_with_bm25(bm25, tokenized_chunks, question)
 
-    # Nur die chunks aus den Textschlüssen extrahieren
-    tfidf_context = [text_chunks_with_docs[i][0] for i in tfidf_indices]  # Nur chunks extrahieren
-    bm25_context = [text_chunks_with_docs[i][0] for i in bm25_indices]    # Nur chunks extrahieren
-    embedding_context = [text for _, _, text in most_similar]  # Annahme, dass dies die erwarteten Strings sind
+    tfidf_context = [text_chunks_with_docs[i][0] for i in tfidf_indices]  
+    bm25_context = [text_chunks_with_docs[i][0] for i in bm25_indices]   
+    embedding_context = [text for _, _, text in most_similar]  
 
-    # Kombiniert die Kontexte
     context = "\n".join(set(tfidf_context + bm25_context + embedding_context))
     return context
 
@@ -615,12 +572,10 @@ def generate_answer_with_openai(question, most_similar, text_chunks_with_docs, c
 
         message_content = response['choices'][0]['message']['content'].strip()
 
-        # Verwende BM25, um den am besten passenden Chunk zu extrahieren
         used_chunk, used_doc = extract_used_chunk_via_bm25(message_content, text_chunks_with_docs)
 
         highlight_snippet = extract_highlight_snippet(question, message_content, used_chunk)
 
-        # Hole die IDs aus der Datenbank basierend auf dem Dokumentnamen und der course_id
         conn = sqlite3.connect('database.db')
         c = conn.cursor()
         c.execute("""
@@ -634,7 +589,6 @@ def generate_answer_with_openai(question, most_similar, text_chunks_with_docs, c
 
         if result:
             university_id, school_id, chair_id, course_id_db = result
-            # Erstelle den Pfad
             doc_path = f"uploads/{university_id}\\{school_id}\\{chair_id}\\{course_id_db}\\{used_doc}"
             print(f"Verwendeter Text-Chunk: '{used_chunk}' aus dem Dokument '{doc_path}'")
             return message_content, used_chunk, doc_path, highlight_snippet
@@ -705,18 +659,6 @@ def get_documents():
 
     return jsonify(document_paths)
 
-# @app.route('/api/documents/<int:university_id>/<int:school_id>/<int:chair_id>/<int:course_id>', methods=['GET'])
-# def list_documents(university_id, school_id, chair_id, course_id):
-#     # Erstellen Sie den Pfad basierend auf den IDs
-#     directory = os.path.join(UPLOAD_FOLDER, str(university_id), str(school_id), str(chair_id), str(course_id))
-    
-#     if not os.path.exists(directory):
-#         return jsonify({"error": "Dokumentverzeichnis nicht gefunden"}), 404
-
-#     # Listet alle PDFs im Verzeichnis auf
-#     documents = [f for f in os.listdir(directory) if f.endswith('.pdf')]
-#     return jsonify(documents)
-
 @app.route('/uploads/<path:filepath>', methods=['GET'])
 def download_file(filepath):
     app.logger.info(f"serve_upload: {filepath!r}")
@@ -762,7 +704,6 @@ def index():
         if not university_id or not school_id or not chair_id or not course_id:
             return "Fehlende Auswahlkriterien.", 400
 
-        # Rest des Codes bleibt gleich
         base_path = app.config['UPLOAD_FOLDER']
         university_path = os.path.join(base_path, university_id if university_id else "")
         school_path = os.path.join(university_path, school_id if school_id else "")

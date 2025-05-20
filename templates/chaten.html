@@ -5,9 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Dokumente und Chat</title>
 
-  <!-- PDF.js Web-UI -->
   <link rel="stylesheet" href="/static/js/pdfjs/pdf_viewer.css" />
-  <!-- deine eigenen Styles -->
+
   <link rel="stylesheet" href="/static/css/styles-chaten.css" />
 </head>
 <body>
@@ -185,18 +184,6 @@
       console.log("📑 used_doc:", used_doc);
       console.log("🏷️ aktuell in pdfFiles[currentIndex]:", pdfFiles[currentIndex]);
 
-      // if (used_doc) {
-      //   const cleanDoc = used_doc.replace(/\\/g,'/').replace(/^\/?(?:uploads\/?)+/, '');
-      //   const idx = pdfFiles.findIndex(p => p.replace(/\\/g,'/').endsWith(cleanDoc));
-      //   if (idx !== -1) currentIndex = idx;
-      // }
-
-      // if (highlight_snippet) {
-      //   loadPDF(highlight_snippet);
-      // } else {
-      //   loadPDF();
-      // }
-
       const aEl = document.createElement('div');
       aEl.textContent = answer; 
       aEl.classList.add('answer');
@@ -208,7 +195,6 @@
         const idx = pdfFiles.findIndex(p => p.replace(/\\/g,'/').endsWith(cleanDoc));
         if (idx !== -1) {
           currentIndex = idx;
-      // Highlight-Snippet oder Standard-Laden
           if (highlight_snippet) {
             loadPDF(highlight_snippet);
           } else {
@@ -220,30 +206,10 @@
     })
     .catch(e => console.error(e))
     .finally(() => {
-    // Spinner verstecken & Button aktivieren
       spinner.classList.add('hidden');
       button.disabled = false;
     });
   }
-
-  // function setupEventListeners() {
-  //   document.getElementById('university-select').addEventListener('change', function(){
-  //     selectedUniversity = this.value; 
-  //     resetSelect('school-select', 'School auswählen'); loadSchools(this.value);
-  //   });
-  //   document.getElementById('school-select').addEventListener('change', function(){
-  //     selectedSchool = this.value; resetSelect('chair-select','Lehrstuhl auswählen'); loadChairs(this.value);
-  //   });
-  //   document.getElementById('chair-select').addEventListener('change', function(){
-  //     selectedChair = this.value; resetSelect('course-select','Kurs auswählen'); loadCourses(this.value);
-  //   });
-  //   document.getElementById('course-select').addEventListener('change', function(){
-  //     selectedCourse = this.value; if(this.value) loadDocuments(); else document.getElementById('viewerContainer').innerHTML='';
-  //   });
-  //   document.getElementById('prev-pdf').addEventListener('click', showPreviousPDF);
-  //   document.getElementById('next-pdf').addEventListener('click', showNextPDF);
-  //   document.getElementById('send-button').addEventListener('click', sendMessage);
-  // }
 
   function setupEventListeners() {
     document.getElementById('university-select')

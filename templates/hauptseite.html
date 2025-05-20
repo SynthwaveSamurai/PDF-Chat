@@ -40,12 +40,35 @@
         .bubble.medium {
             width: 150px;
             height: 150px;
-            background: #808080; /* Mittelgrau */
+            background: #808080;
         }
         .bubble.small {
             width: 100px;
             height: 100px;
-            background: #d3d3d3; /* Hellgrau */
+            background: #d3d3d3;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background: white;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 5px;
+            width: 80%;
+            max-width: 600px;
+            position: relative;
+        }
+        .modal-content .close {
+            position: absolute;
+            top: 8px; right: 12px;
+            font-size: 1.5rem;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -54,18 +77,25 @@
         <div class="bubble large" onclick="location.href='/chaten';">Dokumente befragen</div>
         <div class="bubble large" onclick="location.href='/verwalten';">Dokumente verwalten</div>
 
-        <div class="bubble medium" onclick="location.href='#';">Lehrstuhl der System-verfahrenstechnik</div>
-        <div class="bubble medium" onclick="location.href='#';">TUM Moodle</div>
-        <div class="bubble medium" onclick="location.href='#';">Gutachtenstil</div>
-        <div class="bubble medium" onclick="location.href='#';">CodeInterpreter</div>
+        <div class="bubble medium" onclick="location.href='https://www.lse.ls.tum.de/svt/startseite/';">Lehrstuhl der System-verfahrenstechnik</div>
+        <div class="bubble medium" onclick="location.href='https://wuebot.wuebot.org/';">Gutachtenstil</div>
+        <div class="bubble medium" onclick="location.href='https://llmchat.salesman.svt.wzw.tum.de/';">SVTChat</div>
+        <div class="bubble medium" onclick="location.href='https://codeinterpreter.salesman.svt.wzw.tum.de/';">CodeInterpreter</div>
 
-        <div class="bubble small" onclick="location.href='#';">Kontakt</div>
-        <div class="bubble small" onclick="location.href='#';">Informationen</div>
-        <div class="bubble small" onclick="location.href='#';">Impressum</div>
-        <div class="bubble small" onclick="location.href='#';">Github</div>
-        <div class="bubble small" onclick="location.href='#';">Nutzungs-bedingungen</div>
-        <div class="bubble small" onclick="location.href='#';">Disclaimer</div>
-        <div class="bubble small" onclick="location.href='#';">Privatsphäre-Einstellungen</div>
+        <div class="bubble small" onclick="location.href='mailto:mikemielchen@gmail.com';">Kontakt</div>
+        <div class="bubble small" onclick="showPopup('informationen')">Informationen</div>
+        <div class="bubble small" onclick="showPopup('impressum')">Impressum</div>
+        <div class="bubble small" onclick="location.href='https://github.com/SynthwaveSamurai/PDF-Chat';">Github</div>
+        <div class="bubble small" onclick="showPopup('terms')">Nutzungsbedingungen</div>
+        <div class="bubble small" onclick="showPopup('disclaimer')">Disclaimer</div>
+
+        <div id="popupModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="hidePopup()">&times;</span>
+                <div id="popupBody"></div>
+            </div>
+        </div>
+
     </div>
     <script>
         document.addEventListener("DOMContentLoaded", () => {
@@ -79,7 +109,7 @@
                 bubble.style.top = `${getRandom(0, container.clientHeight - bubble.clientHeight)}px`;
 
                 bubble.radius = bubble.clientWidth / 2;
-                bubble.mass = Math.PI * Math.pow(bubble.radius, 2); // Masse als Fläche
+                bubble.mass = Math.PI * Math.pow(bubble.radius, 2);
                 
                 bubble.velocity = {
                     x: getRandom(0.5, 1) * (Math.random() < 0.5 ? -1 : 1),
@@ -146,7 +176,6 @@
                         if (checkCollision(bubble, otherBubble)) {
                             resolveCollision(bubble, otherBubble);
 
-                            // Reposition slightly to avoid sticking
                             const overlapDistance = bubble.radius + otherBubble.radius - Math.sqrt(
                                 (bubble.offsetLeft + bubble.radius - (otherBubble.offsetLeft + otherBubble.radius)) ** 2 +
                                 (bubble.offsetTop + bubble.radius - (otherBubble.offsetTop + otherBubble.radius)) ** 2
@@ -168,6 +197,42 @@
 
             moveBubbles();
         });
+
+        const POPUP_CONTENT = {
+            informationen: `
+                <h2>Informationen</h2>
+                <p>Hier stehen alle relevanten Details zu unserem PDF-Chat ...</p>
+            `,
+            terms: `
+                <h2>Nutzungsbedingungen</h2>
+                <p>1. Du darfst ...<br>
+                    2. Wir übernehmen keine Haftung ...</p>
+            `,
+            disclaimer: `
+                <h2>Disclaimer</h2>
+                <p>Die Inhalte sind ohne Gewähr ...</p>
+            `,
+            impressum: `
+                <h2>Impressum</h2>
+                <p>Angaben gemäß § 5 TMG:<br>
+                Max Mustermann oder so...<br>
+                Musterstraße 1<br>
+                12345 München</p>
+            `
+        };
+
+        function showPopup(key) {
+            const modal = document.getElementById('popupModal');
+            const body  = document.getElementById('popupBody');
+            body.innerHTML = POPUP_CONTENT[key] || '<p>Keine Inhalte gefunden.</p>';
+            modal.style.display = 'block';
+        }
+        function hidePopup() {
+            document.getElementById('popupModal').style.display = 'none';
+        }
+        window.onclick = e => {
+            if (e.target.id === 'popupModal') hidePopup();
+        };
     </script>
 </body>
 </html>

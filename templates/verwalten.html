@@ -13,7 +13,6 @@
     <div class="container">
         <div class="bubbles">
 
-            <!-- Universität -->
             <div class="bubble-wrapper">
                 <div class="bubble" onclick="showModal('Universitäten')">
                     Universität auswählen
@@ -29,7 +28,6 @@
                 </div>
             </div>
 
-            <!-- School -->
             <div class="bubble-wrapper">
                 <div class="bubble" onclick="showModal('Schools')">
                     School auswählen
@@ -45,7 +43,6 @@
                 </div>
             </div>
 
-            <!-- Lehrstuhl -->
             <div class="bubble-wrapper">
                 <div class="bubble" onclick="showModal('Lehrstühle')">
                     Lehrstuhl auswählen
@@ -61,7 +58,6 @@
                 </div>
             </div>
 
-            <!-- Kurs -->
             <div class="bubble-wrapper">
                 <div class="bubble" onclick="showModal('Kurse')">
                     Kurs auswählen
@@ -93,10 +89,10 @@
         </div>
     </div>
 
-    <!-- Modal zur Auswahl -->
+
     <div id="modal" class="modal">
         <div class="modal-content">
-            <!-- ↓ Hier den „+“-Button einfügen: -->
+
             <button
                 class="add-button"
                 onclick="showAddElementForm(getElementTypeFromTitle(document.getElementById('modalTitle').innerText))"
@@ -105,12 +101,12 @@
             <span class="close" onclick="closeModal()">&times;</span>
             <h2 id="modalTitle"></h2>
             <ul id="elementList">
-                <!-- Elemente werden hier über JavaScript eingefügt -->
+
             </ul>
         </div>
     </div>
 
-    <!-- Modal zum Hinzufügen von Elementen -->
+
     <div id="addElementForm" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeAddElementForm()">&times;</span>
@@ -152,7 +148,7 @@
 
         function showAddElementForm(elementType) {
             const title = document.getElementById('addElementTitle');
-            title.innerText = `Neues ${elementType} hinzufügen`;  // Kein .slice() mehr
+            title.innerText = `Neues ${elementType} hinzufügen`; 
             document.getElementById('addElementForm').style.display = 'block';
         }
 
@@ -169,11 +165,11 @@
             const elementType = getElementTypeFromTitle(document.getElementById('addElementTitle').innerText);
             const elementName = document.getElementById('elementName').value.trim();
             
-            console.log('Versuche, ein neues Element hinzuzufügen:', elementType, elementName);  // Debug-Ausgabe
+            console.log('Versuche, ein neues Element hinzuzufügen:', elementType, elementName);  
 
             if (elementName === '') {
                 alert('Bitte geben Sie einen Namen für das Element ein.');
-                console.log('Abbruch: Kein Name eingegeben.');  // Debug-Ausgabe
+                console.log('Abbruch: Kein Name eingegeben.'); 
                 return;
             }
 
@@ -188,7 +184,7 @@
                 case 'School':
                     if (!selectedUniversity) {
                         alert('Bitte zuerst eine Universität auswählen.');
-                        console.log('Abbruch: Keine Universität ausgewählt.');  // Debug-Ausgabe
+                        console.log('Abbruch: Keine Universität ausgewählt.'); 
                         return;
                     }
                     data.university_id = selectedUniversity.id;
@@ -198,7 +194,7 @@
                 case 'Lehrstuhl':
                     if (!selectedSchool) {
                         alert('Bitte zuerst eine School auswählen.');
-                        console.log('Abbruch: Keine School ausgewählt.');  // Debug-Ausgabe
+                        console.log('Abbruch: Keine School ausgewählt.');  
                         return;
                     }
                     data.school_id = selectedSchool.id;
@@ -208,7 +204,7 @@
                 case 'Kurs':
                     if (!selectedDepartment) {
                         alert('Bitte zuerst einen Lehrstuhl auswählen.');
-                        console.log('Abbruch: Kein Lehrstuhl ausgewählt.');  // Debug-Ausgabe
+                        console.log('Abbruch: Kein Lehrstuhl ausgewählt.');  
                         return;
                     }
                     data.chair_id = selectedDepartment.id;
@@ -256,17 +252,16 @@
             })
             .catch(error => console.error(`Fehler beim Hinzufügen von ${elementType}:`, error));
 
-            // Formular zurücksetzen und das Modal schließen
             document.getElementById('elementForm').reset();
             closeAddElementForm();
         }
 
         function loadUniversities() {
-            console.log('Lade Liste der Universitäten...');  // Debug-Ausgabe
+            console.log('Lade Liste der Universitäten...'); 
             fetch('/api/universities')
                 .then(response => response.json())
                 .then(data => {
-                    console.log('Empfangene Universitäten:', data);  // Debug-Ausgabe
+                    console.log('Empfangene Universitäten:', data);  
                     window.universities = data.map(([id, name]) => ({ id, name, schools: [] }));
                 })
                 .catch(error => console.error('Fehler beim Abrufen der Universitäten:', error));
@@ -310,7 +305,7 @@
             switch (elementType) {
                 case 'Universitäten':
                     title.innerText = 'Universitäten';
-                    console.log('Universitäten laden:', window.universities); // Debug-Ausgabe
+                    console.log('Universitäten laden:', window.universities); 
                     window.universities.forEach(uni => {
                         const li = document.createElement('li');
                         li.innerText = uni.name;
@@ -327,7 +322,7 @@
                         return;
                     }
                     title.innerText = 'Schools';
-                    console.log('Schools laden für Universität ID:', selectedUniversity.id); // Debug-Ausgabe
+                    console.log('Schools laden für Universität ID:', selectedUniversity.id); 
                     loadSchools(selectedUniversity.id);
                     window.schools.forEach(school => {
                         const li = document.createElement('li');
@@ -345,7 +340,7 @@
                         return;
                     }
                     title.innerText = 'Lehrstühle';
-                    console.log('Lehrstühle laden für School ID:', selectedSchool.id); // Debug-Ausgabe
+                    console.log('Lehrstühle laden für School ID:', selectedSchool.id); 
                     loadChairs(selectedSchool.id);
                     window.departments.forEach(department => {
                         const li = document.createElement('li');
@@ -363,7 +358,7 @@
                         return;
                     }
                     title.innerText = 'Kurse';
-                    console.log('Kurse laden für Lehrstuhl ID:', selectedDepartment.id); // Debug-Ausgabe
+                    console.log('Kurse laden für Lehrstuhl ID:', selectedDepartment.id); 
                     loadCourses(selectedDepartment.id);
                     window.courses.forEach(course => {
                         const li = document.createElement('li');

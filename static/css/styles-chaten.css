@@ -1,4 +1,3 @@
-/* Ausgelagerte Styles aus deinem <style>-Block */
 body {
     margin: 0;
     height: 100vh;
@@ -160,8 +159,8 @@ body {
     width: 36px;
     height: 36px;
     border: 2px solid rgba(0,0,0,0.6);
-    border-radius: 50%;      /* rund */
-    background-color: #eee;  /* Hellgrauer Hintergrund */
+    border-radius: 50%;    
+    background-color: #eee;  
     cursor: pointer;
     font-size: 1.2rem;
     display: flex;
